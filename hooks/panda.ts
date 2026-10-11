@@ -9,25 +9,25 @@
  * any terminal without image support.
  */
 
-/** Asleep: B ears, W face, K eye patches (eyes shut) and nose, O a soft outline that keeps the face apart from a light background. */
+/** Awake, holding a red pen: B ears and paw, W face, K eye patches (open eyes, W highlights) and nose, O a soft outline that keeps the face apart from a light background, R the pen, G its tip. */
 const ART = [
-  '.BBB..........BBB.',
-  'BBBBB........BBBBB',
-  'BBBBOOOOOOOOOOBBBB',
-  '.BBWWWWWWWWWWWWBB.',
-  '.OWWWWWWWWWWWWWWO.',
-  'OWWWWWWWWWWWWWWWWO',
-  'OWWKKKKWWWWKKKKWWO',
-  'OWKKKKKWWWWKKKKKWO',
-  'OWKKWWWWWWWWWWKKWO',
-  '.OWWWWWWKKWWWWWWO.',
-  '..OWWWWWWWWWWWWO..',
-  '...OOOWWWWWWOOO...',
-  '......OOOOOO......',
+  '.BBB..........BBB........RR',
+  'BBBBB........BBBBB......RRR',
+  'BBBBOOOOOOOOOOBBBB.....RRR.',
+  '.BBWWWWWWWWWWWWBB.....RRR..',
+  '.OWWWWWWWWWWWWWWO....RRR...',
+  'OWWWWWWWWWWWWWWWWO..RRR....',
+  'OWKKKKWWWWWWKKKKWO.RRR.....',
+  'OKKKWKKWWWWKKWKKKOBBB......',
+  'OKKKKKKWWWWKKKKKKBBBB......',
+  '.OKKKKWWKKWWKKKKOBBB.......',
+  '..OWWWWWKWWKWWWWOGG........',
+  '...OOOWWWWWWOOO.GG.........',
+  '......OOOOOO...............',
 ]
 
-/** Greys that are exact entries of the 256-colour palette, so a terminal without true colour draws them as they are (near-black became navy). */
-const COLORS: Record<string, string> = { B: '#3A3A3A', W: '#EEEEEE', K: '#121212', O: '#8A8A8A' }
+/** Greys and a red that are exact entries of the 256-colour palette, so a terminal without true colour draws them as they are (near-black became navy). */
+const COLORS: Record<string, string> = { B: '#3A3A3A', W: '#EEEEEE', K: '#121212', O: '#8A8A8A', R: '#D70000', G: '#5F5F5F' }
 
 /** One run of characters drawn alike. */
 export type PandaRun = { text: string; color?: string; background?: string }

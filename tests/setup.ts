@@ -11,7 +11,7 @@ type On = Parameters<Body>[1]
 /** The review pane as a dock 80 columns wide and 30 rows tall. */
 export const PANE = {
   component: 'Pane',
-  requestId: 'review',
+  requestId: 'redline',
   props: {
     title: 'Review',
     isFocused: true,

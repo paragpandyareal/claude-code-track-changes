@@ -119,7 +119,7 @@ const BINARIES: Record<string, string> = {
 /** A small 800 × 560 picture. */
 const PNG = base64(png(800, 560, x => (x < 400 ? 0x1188ee : 0xffcc00)))
 
-const PANE = { component: 'Pane', requestId: 'review', props: { title: 'Review', isFocused: true, bodyColumns: 90, placement: 'dock', scroll: { offset: 0, bodyRows: 40 }, view: {} } } as const
+const PANE = { component: 'Pane', requestId: 'redline', props: { title: 'Review', isFocused: true, bodyColumns: 90, placement: 'dock', scroll: { offset: 0, bodyRows: 40 }, view: {} } } as const
 
 /** Which visual row to click in each file, and what the comment must then name. */
 const CASES: [string, number, RegExp, RegExp][] = [

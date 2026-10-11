@@ -508,12 +508,12 @@ test('when Claude finishes without changing the file, sent comments stop showing
   expect(await ui.find({ key: 'spinner' })).toBeUndefined()
 })
 
-test('an empty pane shows the napping panda', async ($, on) => {
+test('an empty pane says no changes yet, in plain English', async ($, on) => {
   begin(on)
   await start($)
   await $.command.run({ command: 'redline', args: '' })
   const ui = await $.ui.mount({ plugin: 'panda-redline', surface: 'terminal', ...PANE })
-  expect(await ui.find({ type: 'Text', text: /The panda is napping/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /No changes from Claude yet/ })).toBeDefined()
   const drawn = JSON.stringify(await ui.drawn())
   expect(drawn).toContain('▀')
   expect(drawn).toContain('#121212')

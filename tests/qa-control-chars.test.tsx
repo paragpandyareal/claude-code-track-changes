@@ -7,7 +7,7 @@ import { expect, test } from 'claude-code/testing'
 import { begin, start } from './setup'
 import { serveWorkbook } from './office'
 
-const PANE = { component: 'Pane', requestId: 'review', props: { title: 'Review', isFocused: true, bodyColumns: 80, placement: 'dock', scroll: { offset: 0, bodyRows: 30 }, view: {} } } as const
+const PANE = { component: 'Pane', requestId: 'redline', props: { title: 'Review', isFocused: true, bodyColumns: 80, placement: 'dock', scroll: { offset: 0, bodyRows: 30 }, view: {} } } as const
 
 const CASES: [string, string][] = [
   ['/w/ansi.txt', 'build ok\n\u001b[31mERROR\u001b[0m red text\n'],

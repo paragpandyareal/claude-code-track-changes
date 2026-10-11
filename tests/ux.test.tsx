@@ -111,7 +111,7 @@ test('after Send, the keys go back to Claude: the selection is let go and the pa
   await ui.input({ key: 'comment-0', text: 'Shorter' })
   const before = opens.length
   await ui.press({ key: 'send' })
-  expect(closes).toEqual(['review'])
+  expect(closes).toEqual(['redline'])
   const reopened = opens.slice(before)
   expect(reopened.length).toBe(1)
   expect(reopened[0]?.focus).toBeUndefined()

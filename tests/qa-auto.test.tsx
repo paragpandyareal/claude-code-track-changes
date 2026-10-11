@@ -6,7 +6,7 @@ import { expect, test } from 'claude-code/testing'
 
 import { begin, start } from './setup'
 
-const PANE = { component: 'Pane', requestId: 'review', props: { title: 'Review', isFocused: true, bodyColumns: 80, placement: 'dock', scroll: { offset: 0, bodyRows: 30 }, view: {} } } as const
+const PANE = { component: 'Pane', requestId: 'redline', props: { title: 'Review', isFocused: true, bodyColumns: 80, placement: 'dock', scroll: { offset: 0, bodyRows: 30 }, view: {} } } as const
 const NL = String.fromCharCode(10)
 
 test('auto-open: when Claude edits the file the user is reviewing, the source view and selection survive', async ($, on) => {

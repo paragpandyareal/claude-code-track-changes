@@ -42,7 +42,7 @@ import type { Palette } from './palette'
 import type { SpinnerProps } from './spinner'
 import type { GridRow, LineRow, ViewerPost, ViewerProps } from './viewer'
 
-const PANE = 'review'
+const PANE = 'redline'
 const TITLE = 'Panda Redline'
 
 /** Files the pane can show, by extension. */
@@ -967,11 +967,11 @@ export const register: Register = on => {
     // Once, after install: proof it worked, and the first thing to try.
     if ((await $.store.get('welcomed')) !== true) {
       await $.store.set('welcomed', true)
-      $.ui.toast('🐼 Panda Redline is ready. Type /redline examples to try it. Everything opens without installing anything; only Word, Excel and PDF files over 4 MB need Python.')
+      $.ui.toast('🐼 Panda Redline is ready. When Claude edits a document, /redline shows what changed. Nothing to install; only Word, Excel and PDF files over 4 MB need Python to be tracked.')
     }
     await $.command.register({
       name: 'redline',
-      description: 'Open the Panda Redline, or a file in it: /redline [file] · /redline examples · /redline auto on|off · /redline setup',
+      description: 'See what Claude changed in your documents: /redline [file] · /redline history <file> · /redline settings · /redline examples',
       argumentHint: '[file | examples | auto on|off | setup]',
     })
     const where =
@@ -1298,7 +1298,7 @@ export const register: Register = on => {
       <Box flexDirection="column" width={ctx.columns}>
         {fileBar}
         {section.bar}
-        {rule}
+        {section.bar && rule}
         {document}
         {section.after ?? null}
         {section.footnote ? <Text color={ctx.pal.warning} wrap="wrap">{section.footnote}</Text> : null}
@@ -1345,7 +1345,8 @@ type Ctx = {
 type Shown = { index: number; label: string; result: Pixels | string | null }
 /** A section's parts; `viewer` is what the document view draws, where the surface has one (`body` is drawn otherwise). */
 type Section = {
-  bar: JSX.Element
+  /** The line under the file bar, with the rule under it; null for neither. */
+  bar: JSX.Element | null
   body: JSX.Element
   viewer?: { props: ViewerProps; height: number }
   after?: JSX.Element | null
@@ -1389,8 +1390,36 @@ function fileBarProps(ctx: Ctx): FileBarProps {
 
 function emptySection(ctx: Ctx): Section {
   const { Box, Text } = ctx.els
+  const { pal } = ctx
   // The panda only when it fits whole beside the text; a cut-off panda looks broken, so a small pane gets the text alone.
   const panda = ctx.bodyRows >= 20 && ctx.columns >= 70 ? pandaRows() : []
+  const hints = (
+    <>
+      <Text wrap="truncate-end">
+        <Text color={pal.subtle}>Try it:    </Text>
+        <Text color={pal.accent}>/redline examples</Text>
+      </Text>
+      <Text wrap="truncate-end">
+        <Text color={pal.subtle}>One file:  </Text>
+        <Text color={pal.accent}>/redline budget.xlsx</Text>
+      </Text>
+    </>
+  )
+  // A short pane: no spacing, the message on as few lines as the width allows, so the hints still show.
+  if (ctx.bodyRows < 8) {
+    return {
+      bar: null,
+      body: (
+        <Box flexDirection="column">
+          <Text>
+            <Text bold color={pal.accent}>No changes from Claude yet. </Text>
+            <Text color={pal.text}>When Claude edits a document, it'll show up here.</Text>
+          </Text>
+          {hints}
+        </Box>
+      ),
+    }
+  }
   return {
     bar: <Text> </Text>,
     body: (
@@ -1407,23 +1436,12 @@ function emptySection(ctx: Ctx): Section {
           ))}
         </Box>}
         <Box flexDirection="column">
-          <Text color={ctx.pal.subtle}>      z</Text>
-          <Text color={ctx.pal.subtle}>    Z</Text>
-          <Text color={ctx.pal.subtle}>  z</Text>
+          {panda.length > 0 && <Text> </Text>}
+          <Text bold color={pal.accent}>No changes from Claude yet.</Text>
+          <Text color={pal.text}>When Claude edits a document,</Text>
+          <Text color={pal.text}>it'll show up here.</Text>
           <Text> </Text>
-          <Text bold color={ctx.pal.accent}>Nothing to review yet. The panda is napping.</Text>
-          <Text>
-            <Text color={ctx.pal.subtle}>Try it now:   </Text>
-            <Text color={ctx.pal.accent}>/redline examples</Text>
-          </Text>
-          <Text>
-            <Text color={ctx.pal.subtle}>Open a file:  </Text>
-            <Text color={ctx.pal.accent}>/redline report.docx</Text>
-            <Text color={ctx.pal.subtle}>, or ask Claude to “open the report”</Text>
-          </Text>
-          <Text color={ctx.pal.subtle}>
-            {ctx.isAuto ? 'Auto-open is on: new files from Claude open here when it finishes.' : 'Turn on ○ Auto-open (top right) and new files from Claude open here by themselves.'}
-          </Text>
+          {hints}
         </Box>
       </Box>
     ),

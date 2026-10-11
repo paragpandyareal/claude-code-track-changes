@@ -11,7 +11,7 @@ import { serveWorkbook } from './office'
 const PANE = (cols = 80, rows = 30) =>
   ({
     component: 'Pane',
-    requestId: 'review',
+    requestId: 'redline',
     props: { title: 'Review', isFocused: true, bodyColumns: cols, placement: 'dock', scroll: { offset: 0, bodyRows: rows }, view: {} },
   }) as const
 const NL = String.fromCharCode(10)
