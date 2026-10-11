@@ -113,11 +113,14 @@ function rowSegs(row: DocRow, as: 'n' | 'del' | 'add'): Seg[] {
 
 function pieceSegs(pieces: Piece[], side: 'both' | 'before' | 'after', base: SegKind): Seg[] {
   const out: Seg[] = []
-  for (const p of pieces) {
+  pieces.forEach((p, k) => {
     if (p.op === 0) out.push({ t: p.t, k: base })
-    else if (p.op === -1 && side !== 'after') out.push({ t: p.t, k: 'del' })
-    else if (p.op === 1 && side !== 'before') out.push({ t: p.t, k: 'add' })
-  }
+    else if (p.op === -1 && side !== 'after') {
+      out.push({ t: p.t, k: 'del' })
+      // A space between the old words and the new, so "3" then "10" never reads as "310".
+      if (side === 'both' && pieces[k + 1]?.op === 1) out.push({ t: ' ' })
+    } else if (p.op === 1 && side !== 'before') out.push({ t: p.t, k: 'add' })
+  })
   return out.length > 0 ? out : [{ t: ' ' }]
 }
 
@@ -205,12 +208,10 @@ export function layoutLines(cmp: LinesComparison, changes: Change[], opts: { wid
         lines = wrapSegs([...rowLead(row), ...pieceSegs(op.pieces, 'both', keptKind(row))], width, [MARK.mod])
         if (op.restyled) lines.push([{ t: '  ' }, { t: `(${op.restyled})`, k: 'dim' }])
       }
-      // A quiet blank line between paragraphs stays one line.
+      // A blank line between paragraphs is just a gap, kept or not, never a change of its own.
       if ((op.kind === 'same' && isQuiet(cmp.after[op.b])) || (op.kind === 'del' && isQuiet(cmp.before[op.a])) || (op.kind === 'add' && isQuiet(cmp.after[op.b]))) {
-        if (op.kind === 'same' || rows[rows.length - 1]?.segs.every(s => s.t.trim() === '')) {
-          rows.push({ segs: [{ t: ' ' }] })
-          continue
-        }
+        if (op.kind !== 'del' && !rows[rows.length - 1]?.segs.every(s => s.t.trim() === '')) rows.push({ segs: [{ t: ' ' }] })
+        continue
       }
       for (const segs of lines) rows.push({ segs, ...(change !== undefined ? { change } : {}) })
       continue
@@ -398,7 +399,8 @@ export function layoutGrid(sheet: SheetComparison, sheetIndex: number, changes: 
     const drawSide = (which: 'both' | 'before' | 'after'): { segs: Seg[]; cells: CellSpot[]; change?: number } => {
       const number = which === 'before' ? (op.kind === 'add' ? '' : op.a + 1) : op.kind === 'del' ? op.a + 1 : op.b + 1
       const showNumber = (which === 'before' && op.kind === 'add') || (which === 'after' && op.kind === 'del') ? '' : String(number)
-      const mark = op.kind === 'del' ? MARK.del : op.kind === 'add' ? MARK.add : op.kind === 'mod' ? MARK.mod : MARK.same
+      const isAbsent = (which === 'before' && op.kind === 'add') || (which === 'after' && op.kind === 'del')
+      const mark = isAbsent ? MARK.same : op.kind === 'del' ? MARK.del : op.kind === 'add' ? MARK.add : op.kind === 'mod' ? MARK.mod : MARK.same
       const segs: Seg[] = [{ t: showNumber.padStart(gutter), k: 'num' }, { t: ' ' }, mark]
       const cells: CellSpot[] = []
       let x = lead

@@ -257,3 +257,13 @@ test('wrapping keeps a lead on the first line and spaces under it after', () => 
   expect(lines[0]?.[0]?.t).toBe('+ ')
   expect(lines[1]?.[0]?.t).toBe('  ')
 })
+
+test('a row inserted above formulas does not make them look changed: they are compared by their shape', async () => {
+  const before = sheet('S', [['Item', 'Q1', 'Q2', 'Total'], ['Rent', 10, 20, cell(30, '=SUM(B2:C2)')], ['Pay', 5, 5, cell(10, '=SUM(B3:C3)')], ['Total', cell(15, '=SUM(B2:B3)'), cell(25, '=SUM(C2:C3)'), cell(40, '=SUM(D2:D3)')]])
+  const after = sheet('S', [['Item', 'Q1', 'Q2', 'Total'], ['Rent', 10, 20, cell(30, '=SUM(B2:C2)')], ['Cover', 1, 1, cell(2, '=SUM(B3:C3)')], ['Pay', 5, 5, cell(10, '=SUM(B4:C4)')], ['Total', cell(16, '=SUM(B2:B4)'), cell(26, '=SUM(C2:C4)'), cell(42, '=SUM(D2:D4)')]])
+  const s = compareGrids([before], [after]).sheets[0]!
+  expect(s.counts.rowsAdded).toBe(1)
+  expect(s.counts.colsAdded + s.counts.colsRemoved).toBe(0)
+  // Only the totals row changed: its sums now take in the new row.
+  expect(s.counts.cells).toBe(3)
+})

@@ -134,6 +134,7 @@ export function matchParent(path: string, fingerprint: string[] | undefined, can
   if (!best) return { verdict: 'none', others: [] }
   const margin = best.score - (second?.score ?? 0)
   // The same name in the same folder is enough on its own, even when the file can't be read.
-  const sure = (best.score >= 0.72 || best.isSameName) && margin >= 0.12
+  const isOnlySameName = best.isSameName && !ranked.slice(1).some(m => m.isSameName)
+  const sure = isOnlySameName || (best.score >= 0.72 && margin >= 0.12)
   return { verdict: sure ? 'sure' : best.score >= 0.5 ? 'unsure' : 'none', best, others: ranked.slice(1, 4) }
 }

@@ -174,7 +174,8 @@ type PairedStep = Step | { op: '~'; a: number; b: number }
 /** A run of words: kept (0), removed (-1) or added (1). */
 export type Piece = { t: string; op: 0 | 1 | -1 }
 
-const TOKEN = /\s+|[\p{L}\p{N}_'’.,%$€£-]+|[^\s]/gu
+/** Words, numbers with their points and commas (12,000.50, 3.5%), runs of space, and any other character alone: so "78%." is the number and then the full stop. */
+const TOKEN = /\s+|[\p{L}\p{N}_'’$€£%]+(?:[.,\-/:][\p{L}\p{N}_'’$€£%]+)*|[^\s]/gu
 
 export const tokens = (text: string) => text.match(TOKEN) ?? []
 
@@ -334,7 +335,34 @@ export type GridComparison = { kind: 'grid'; sheets: SheetComparison[] }
 
 const EMPTY: GridCell = { v: '' }
 const cellAt = (sheet: GridSheet | undefined, r: number, c: number): GridCell => sheet?.rows[r]?.[c] ?? EMPTY
-const cellKey = (c: GridCell) => `${c.v}\u0001${c.f ?? ''}`
+
+const colNumber = (letters: string) => [...letters.toUpperCase()].reduce((n, ch) => n * 26 + ch.charCodeAt(0) - 64, 0)
+const REF = /(^|[^A-Za-z0-9_.'!$])(\$?)([A-Za-z]{1,3})(\$?)(\d+)(?![\d(A-Za-z_])/g
+
+/**
+ * A formula as its shape, wherever the cell is: references made relative to
+ * the cell, as Excel's R1C1 form. A row inserted above moves =SUM(B3:D3) to
+ * =SUM(B4:D4); both are "the three cells to the left", so neither is a change.
+ */
+export function formulaShape(formula: string | undefined, row: number, col: number): string {
+  if (!formula) return ''
+  // Text in quotes is left as it is.
+  return formula
+    .split(/("(?:[^"]|"")*")/)
+    .map((part, k) =>
+      k % 2 === 1
+        ? part
+        : part.replace(REF, (_, lead: string, absCol: string, letters: string, absRow: string, digits: string) => {
+            const c = colNumber(letters) - 1
+            const r = Number(digits) - 1
+            return `${lead}R${absRow ? r : `[${r - row}]`}C${absCol ? c : `[${c - col}]`}`
+          }),
+    )
+    .join('')
+    .toUpperCase()
+}
+
+const cellKey = (c: GridCell, row: number, col: number) => `${c.v}\u0001${formulaShape(c.f, row, col)}`
 
 /** How alike two lists of values are, as multisets: for lining up columns that moved. */
 function multisetSimilarity(a: string[], b: string[]): number {
@@ -365,17 +393,17 @@ export function compareSheet(before: GridSheet | undefined, after: GridSheet | u
   const nColsA = before ? widthOf(before) : 0
   const nColsB = after ? widthOf(after) : 0
   // Columns first, by what they hold top to bottom (the first 2,000 rows say enough).
-  const colValues = (sheet: GridSheet | undefined, rows: GridCell[][], c: number) => rows.slice(0, 2000).map(row => cellKey(row[c] ?? EMPTY))
-  const colsA = Array.from({ length: nColsA }, (_, c) => colValues(before, rowsA, c))
-  const colsB = Array.from({ length: nColsB }, (_, c) => colValues(after, rowsB, c))
+  const colValues = (rows: GridCell[][], c: number) => rows.slice(0, 2000).map((row, r) => cellKey(row[c] ?? EMPTY, r, c))
+  const colsA = Array.from({ length: nColsA }, (_, c) => colValues(rowsA, c))
+  const colsB = Array.from({ length: nColsB }, (_, c) => colValues(rowsB, c))
   const colSteps = editScript(colsA.map(v => v.join('\u0002')), colsB.map(v => v.join('\u0002')), 200)
   const colPairs = pairRuns(colSteps, (a, b) => multisetSimilarity(colsA[a]!, colsB[b]!), 0.5, 0.3)
   const cols: GridOp[] = colPairs.map(s => (s.op === '=' || s.op === '~' ? { kind: 'same', a: s.a, b: s.b } : s.op === '-' ? { kind: 'del', a: s.a } : { kind: 'add', b: s.b }))
   const kept = cols.filter((c): c is Extract<GridOp, { a: number; b: number }> => c.kind === 'same')
   // Then rows, by the columns both versions have, so a column added doesn't change every row.
-  const rowSig = (row: GridCell[] | undefined, side: 'a' | 'b') => kept.map(c => cellKey(row?.[side === 'a' ? c.a : c.b] ?? EMPTY)).join('\u0002')
-  const sigA = rowsA.map(r => rowSig(r, 'a'))
-  const sigB = rowsB.map(r => rowSig(r, 'b'))
+  const rowSig = (row: GridCell[] | undefined, r: number, side: 'a' | 'b') => kept.map(c => cellKey(row?.[side === 'a' ? c.a : c.b] ?? EMPTY, r, side === 'a' ? c.a : c.b)).join('\u0002')
+  const sigA = rowsA.map((row, r) => rowSig(row, r, 'a'))
+  const sigB = rowsB.map((row, r) => rowSig(row, r, 'b'))
   const rowSteps = editScript(sigA, sigB, 3000)
   const rowPairs = pairRuns(
     rowSteps,
@@ -387,7 +415,7 @@ export function compareSheet(before: GridSheet | undefined, after: GridSheet | u
         const y = cellAt(after, b, c.b)
         if (x.v === '' && y.v === '' && !x.f && !y.f) continue
         filled += 1
-        if (cellKey(x) === cellKey(y)) same += 1
+        if (cellKey(x, a, c.a) === cellKey(y, b, c.b)) same += 1
       }
       return filled === 0 ? 1 : same / filled
     },
@@ -413,7 +441,7 @@ export function compareSheet(before: GridSheet | undefined, after: GridSheet | u
         const x = cellAt(before, s.a, c.a)
         const y = cellAt(after, s.b, c.b)
         const value = x.v !== y.v
-        const formula = (x.f ?? '') !== (y.f ?? '')
+        const formula = formulaShape(x.f, s.a, c.a) !== formulaShape(y.f, s.b, c.b)
         if (!value && !formula) return
         cells.set(`${index}:${ci}`, { value, formula })
         counts.cells += 1
@@ -447,7 +475,7 @@ export function compareSheet(before: GridSheet | undefined, after: GridSheet | u
 
 /** How alike two sheets are by their rows: for telling a renamed sheet from a new one. */
 function sheetSimilarity(a: GridSheet, b: GridSheet): number {
-  const sig = (s: GridSheet) => s.rows.slice(0, 500).map(r => r.map(cellKey).join('\u0002'))
+  const sig = (s: GridSheet) => s.rows.slice(0, 500).map((row, r) => row.map((cell, c) => cellKey(cell, r, c)).join('\u0002'))
   return multisetSimilarity(sig(a), sig(b))
 }
 

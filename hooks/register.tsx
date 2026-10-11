@@ -26,7 +26,7 @@ import { BADGES, PALETTE } from './palette'
 import { pandaRows } from './panda'
 import { readPdf } from './pdf'
 import type { SpinnerProps } from './spinner'
-import { cutTo, sanitizeLine, stripControls, strWidth } from './text'
+import { cutTo, sanitizeLine, stripControls } from './text'
 import { readXlsx } from './xlsx'
 
 /*
@@ -1310,7 +1310,15 @@ const drawnBy = new Map<RenderSurface, Drawn>()
 // ── Opening and moving about ──
 
 async function openPane($: EngineInterface, focus = false) {
-  return $.ui.open({ id: PANE, title: TITLE, rows: 34, ...(focus ? { focus: true as const } : {}) })
+  const opened = await $.ui.open({ id: PANE, title: TITLE, rows: 34 })
+  // While a command runs the prompt still holds its text, so the keys are asked for a moment after; then n, p and the rest work at once (Esc gives them back).
+  if (focus) $.clock.after(150, () => void takeKeys($))
+  return opened
+}
+
+async function takeKeys($: EngineInterface) {
+  await $.ui.open({ id: PANE, title: TITLE, focus: true }).catch(() => undefined)
+  await $.ui.focus({ requestId: PANE, key: 'next' }).catch(() => undefined)
 }
 
 async function redraw($: EngineInterface) {
@@ -1367,10 +1375,12 @@ async function onKey($: EngineInterface, key: string, surface: RenderSurface) {
   const total = d?.laid.rows.length ?? 0
   const height = d?.height ?? 10
   const scrollTo = (top: number) => update($, pane, old => ({ ...old, top: clamp(top, 0, Math.max(0, total - height)) }))
-  if (key === 'down') return scrollTo(p.top + 1)
-  if (key === 'up') return scrollTo(p.top - 1)
-  if (key === 'pagedown' || key === 'space' || key === ' ') return scrollTo(p.top + height - 1)
-  if (key === 'pageup') return scrollTo(p.top - height + 1)
+  // From where the view is drawn, which may differ from where it was left (it opens at the first change).
+  const at = d?.top ?? p.top
+  if (key === 'down') return scrollTo(at + 1)
+  if (key === 'up') return scrollTo(at - 1)
+  if (key === 'pagedown' || key === 'space' || key === ' ') return scrollTo(at + height - 1)
+  if (key === 'pageup') return scrollTo(at - height + 1)
   if (key === 'home') return scrollTo(0)
   if (key === 'end') return scrollTo(total)
   if (key === 'n' || key === 'j' || key === 'tab') return focusChange($, (p.focus ?? -1) + 1, surface)
@@ -1795,13 +1805,16 @@ async function examples($: EngineInterface, base: string): Promise<string> {
   const running = vault.index.running as { id: string; start: number } | null
   if (running) running.start = earlier + 1
   // After: Claude's changes. The budget comes back as a new file, budget_v2.xlsx, as Claude often does.
-  await $.fs.write(`${folder}/plan.md`, PLAN_AFTER)
-  await $.fs.write(`${folder}/meter-readings.csv`, CSV_AFTER)
   if (hasOffice) {
     await writeExactly($, `${folder}/budget_v2.xlsx`, base64Of(makeXlsx(budgetSheets(true))))
-    await writeExactly($, `${folder}/report.docx`, base64Of(makeDocx(reportBlocks(true))))
     written.add(`${folder}/budget_v2.xlsx`)
+    await $.clock.sleep(20)
+    await writeExactly($, `${folder}/report.docx`, base64Of(makeDocx(reportBlocks(true))))
+    await $.clock.sleep(20)
   }
+  await $.fs.write(`${folder}/plan.md`, PLAN_AFTER)
+  await $.clock.sleep(20)
+  await $.fs.write(`${folder}/meter-readings.csv`, CSV_AFTER)
   const result = await noteEnd($, 'done', 'example')
   forgetDrawings()
   if (result.turn) {
@@ -1925,7 +1938,7 @@ export const register: Register = on => {
       if (word === 'examples' || word.startsWith('examples ')) {
         if (!isPerson) return { text: 'Only you can write the samples: type /redline examples.', exitCode: 1 }
         const text = await examples($, typedPath(args.slice('examples'.length).trim() || 'panda-redline-examples'))
-        const opened = await openPane($)
+        const opened = await openPane($, true)
         return { text: opened.isPlaced ? text : `${text} Make the window wider to see the pane, or run /redline again.` }
       }
       if (word === 'setup') {
@@ -1941,7 +1954,7 @@ export const register: Register = on => {
         const fam = name ? familyNamed(name) : shownOf(await read($, pane))?.fam
         if (!fam) return { text: name ? `Panda Redline has no versions of ${name} yet.` : 'Name a document: /redline history budget.xlsx', exitCode: 1 }
         await showFamily($, fam.id, null, null, 'history')
-        await openPane($)
+        await openPane($, isPerson)
         return { text: `${fam.name}: ${plural(fam.versions.length, 'version')}.` }
       }
       if (args) {
@@ -1962,7 +1975,8 @@ export const register: Register = on => {
       } else if ((await read($, pane)).view !== 'changes') {
         await setView($, 'changes')
       }
-      const opened = await openPane($)
+      // Typed by the person: the pane takes the keys, so n and p step through the changes at once (Esc gives them back).
+      const opened = await openPane($, isPerson)
       return { text: opened.isPlaced ? 'Panda Redline opened.' : 'Panda Redline needs a wider terminal: make the window wider, or run /redline again.' }
     } catch (failure) {
       return { text: `/redline ${sanitizeLine(e.args.trim(), 200)} failed: ${errorText(failure)}`, exitCode: 1 }
@@ -2043,7 +2057,7 @@ export const register: Register = on => {
     const d = drawnBy.get('terminal')
     const total = d?.laid.rows.length ?? 0
     const height = d?.height ?? 10
-    await update($, pane, old => ({ ...old, top: clamp(old.top + e.by * 3, 0, Math.max(0, total - height)) }))
+    await update($, pane, old => ({ ...old, top: clamp((d?.top ?? old.top) + e.by * 3, 0, Math.max(0, total - height)) }))
     return {}
   })
 
@@ -2063,6 +2077,7 @@ export const register: Register = on => {
       columns: Math.max(36, e.props.bodyColumns),
       rows,
       isCompact: rows < 26,
+      isTiny: rows < 16,
       p,
       s: await read($, settings),
       shown,
@@ -2089,6 +2104,8 @@ type Ctx = {
   columns: number
   rows: number
   isCompact: boolean
+  /** A pane so short that only the changes and the way through them fit. */
+  isTiny: boolean
   p: PaneState
   s: Settings
   shown: Shown | null
@@ -2128,8 +2145,9 @@ function drawPane($: EngineInterface, ctx: Ctx): JSX.Element {
     if (ask) parts.push(askRow($, ctx, ask))
     parts.push(emptyView(ctx))
   } else {
-    parts.push(versionsRow($, ctx))
-    if (ask && p.view === 'changes') parts.push(askRow($, ctx, ask))
+    if (!ctx.isTiny) parts.push(versionsRow($, ctx))
+    // A short pane keeps the question to a line in the summary; it's answered in a taller one.
+    if (ask && p.view === 'changes' && !ctx.isTiny) parts.push(askRow($, ctx, ask))
     if (p.view === 'history') parts.push(historyView($, ctx))
     else if (p.view === 'pick-before' || p.view === 'pick-after') parts.push(pickView($, ctx))
     else if (p.view === 'restore') parts.push(restoreView($, ctx))
@@ -2251,7 +2269,7 @@ function askRow($: EngineInterface, ctx: Ctx, ask: Ask): RenderNode {
   return (
     <Box flexDirection="row" columnGap={1} {...(ctx.isCompact ? {} : { borderStyle: 'round', borderColor: pal.warning, paddingX: 1 })}>
       <Box flexGrow={1} flexShrink={1}>
-        <Text wrap="wrap">
+        <Text wrap={ctx.isCompact ? 'truncate-end' : 'wrap'}>
           <Text color={pal.warning} bold>? </Text>
           Is <Text bold>{nameOf(ask.path)}</Text> a new version of <Text bold>{nameOf(ask.guess.path)}</Text>?
         </Text>
@@ -2383,14 +2401,21 @@ function changesView($: EngineInterface, ctx: Ctx): Part[] {
   const sheet = isGrid ? clamp(p.sheet, 0, Math.max(0, sheets.length - 1)) : 0
   out.push(
     <Text wrap="truncate-end">
+      {ctx.isTiny ? (
+        <Text color={pal.subtle}>
+          {shown.before ? `${clock(shown.before.at)} → ` : 'New · '}
+          {clock(shown.after.at)} {shortWho(shown.after)} ·{' '}
+        </Text>
+      ) : null}
       <Text bold color={c.changes.length > 0 ? pal.text : pal.subtle}>
-        {c.changes.length > 0 ? c.summary : 'No changes between these two versions'}
+        {c.changes.length > 0 ? (ctx.isTiny ? plural(c.changes.length, 'change') : c.summary) : 'No changes between these two versions'}
       </Text>
+      {ctx.isTiny && vault.index.asks[0] ? <Text color={pal.warning}> · ? a question for you (make the pane taller)</Text> : null}
       {c.note && !ctx.isCompact ? <Text color={pal.dim}>  ⓘ {c.note}</Text> : null}
     </Text>,
   )
   let extras = 0
-  if (isGrid && sheets.length > 1) {
+  if (isGrid && sheets.length > 1 && !ctx.isTiny) {
     extras += 1
     out.push(
       <Box flexDirection="row" columnGap={2}>
@@ -2413,14 +2438,18 @@ function changesView($: EngineInterface, ctx: Ctx): Part[] {
   if (picked) extras += 1
   const drafts = ctx.notes.filter(n => n.status === 'draft')
   const listLines = c.changes.length === 0 ? 0 : p.isListOpen ? Math.min(c.changes.length, ctx.isCompact ? 4 : 8) + 1 : 1
-  extras += listLines + (p.isCommenting ? (ctx.isCompact ? 1 : 3) : 0) + (drafts.length > 0 ? 1 : 0) + 1 + (ctx.isCompact ? 0 : 1)
-  const fixed = 3 + (ctx.banner ? 1 : 0) + (vault.index.asks[0] ? (ctx.isCompact ? 1 : 3) : 0) + extras + (ctx.waiting.length > 0 ? 1 : 0)
+  const hasActions = !ctx.isTiny || ctx.rows >= 12
+  extras += listLines + (p.isCommenting ? (ctx.isCompact ? 1 : 3) : 0) + (drafts.length > 0 ? 1 : 0) + (hasActions ? 1 : 0) + (ctx.isCompact ? 0 : 2)
+  const fixed = (ctx.isTiny ? 2 : 3) + (ctx.banner ? 1 : 0) + (vault.index.asks[0] && !ctx.isTiny ? (ctx.isCompact ? 1 : 3) : 0) + extras + (ctx.waiting.length > 0 ? 1 : 0)
   const height = clamp(ctx.rows - fixed - 1, 3, 200)
   const mode = p.mode === 'auto' ? autoMode(ctx.columns) : p.mode
   const width = Math.max(30, ctx.columns - 3)
   const laid = laidOf(c, p, width, mode, sheet)
   const total = laid.rows.length
-  const top = clamp(p.top, 0, Math.max(0, total - height))
+  // Opened fresh, the view starts where the first change is, if that's below what fits.
+  const first = laid.changeAt[0] ?? 0
+  const start = p.top === 0 && p.focus === null && first >= height - 1 ? first - 1 : p.top
+  const top = clamp(start, 0, Math.max(0, total - height))
   const visible = laid.rows.slice(top, top + height)
   drawnBy.set(ctx.surface, { laid, top, height, changes: c.changes, sheet, isGrid, sheets: sheets.length, columns: ctx.columns })
   const below = total - top - visible.length
@@ -2433,16 +2462,17 @@ function changesView($: EngineInterface, ctx: Ctx): Part[] {
     fresh: isFresh ? c.changes.map((_, i) => i) : [],
     width,
     scroll: { top, shown: visible.length, total },
-    ...(below > 0 ? { below: `${plural(below, 'more line')} below${ctx.columns >= 70 ? ' · scroll, PgDn, or n for the next change' : ''}` } : {}),
+    // A short pane has the scrollbar to say there's more; a taller one says how much.
+    ...(below > 0 && !ctx.isTiny ? { below: `${plural(below, 'more line')} below${ctx.columns >= 70 ? ' · scroll, PgDn, or n for the next change' : ''}` } : {}),
   }
-  if (ctx.Client) out.push(h(ctx.Client, { module: './changes.tsx', key: 'changes', props, height: visible.length + (below > 0 ? 1 : 0) }))
+  if (ctx.Client) out.push(h(ctx.Client, { module: './changes.tsx', key: 'changes', props, height: visible.length + (props.below ? 1 : 0) }))
   else out.push(<Text>{visible.map(rowText).join('\n')}</Text>)
   if (picked) out.push(picked)
   if (c.changes.length > 0) out.push(changeList($, ctx, c))
   if (p.isCommenting && p.focus !== null) out.push(commentBox($, ctx, shown, c, p.focus))
   if (drafts.length > 0) out.push(draftsRow($, ctx, drafts))
-  out.push(actionsRow($, ctx, c))
-  if (!ctx.isCompact) out.push(keysRow(ctx, isGrid))
+  if (hasActions) out.push(actionsRow($, ctx, c))
+  if (!ctx.isCompact) out.push(keysRow($, ctx, isGrid, sheets.length))
   return out
 }
 
@@ -2509,8 +2539,8 @@ function changeList($: EngineInterface, ctx: Ctx, c: Compared): RenderNode {
           </Text>
         )}
       </Box>
-      <Button key="prev" label="‹ prev" plain onPress={step(-1)} />
-      <Button key="next" label="next ›" plain onPress={step(1)} />
+      <Button key="prev" label="prev" hotkey="p" plain onPress={step(-1)} />
+      <Button key="next" label="next" hotkey="n" plain onPress={step(1)} />
     </Box>
   )
   if (!p.isListOpen) return head
@@ -2588,52 +2618,47 @@ function actionsRow($: EngineInterface, ctx: Ctx, c: Compared | null): RenderNod
         <Button
           key="restore"
           label={narrow ? `↺ ${clock(before.at)}` : after.key === null ? `↺ Bring back ${nameOf(before.path)}` : `↺ Restore ${clock(before.at)} version`}
+          hotkey="r"
           onPress={() => void setView($, 'restore', before.id)}
         />
       ) : null}
-      {canKeep ? <Button key="keep" label={narrow ? '✓ Keep' : '✓ Keep this version'} onPress={() => void setView($, 'keep', after.id)} /> : null}
-      {c && p.focus !== null && !p.isCommenting && ctx.Input ? <Button key="comment" label="✎ Comment" plain onPress={() => void update($, pane, old => ({ ...old, isCommenting: true }))} /> : null}
-      {session.opener && after.key !== null && app ? <Button key="open" label={narrow ? 'Open' : `Open in ${app}`} plain onPress={() => void openOutside($, after.path)} /> : null}
+      {canKeep ? <Button key="keep" label={narrow ? '✓ Keep' : '✓ Keep this version'} hotkey="k" onPress={() => void setView($, 'keep', after.id)} /> : null}
+      {c && p.focus !== null && !p.isCommenting && ctx.Input ? <Button key="comment" label="✎ Comment" hotkey="c" plain onPress={() => void update($, pane, old => ({ ...old, isCommenting: true }))} /> : null}
+      {session.opener && after.key !== null && app ? <Button key="open" label={narrow ? 'Open' : `Open in ${app}`} hotkey="o" plain onPress={() => void openOutside($, after.path)} /> : null}
     </Box>
   )
 }
 
-function keysRow(ctx: Ctx, isGrid: boolean): RenderNode {
-  const { Text } = ctx.els
-  const keys: [string, string][] = [
-    ['n p', 'next / previous'],
-    ['↑↓', 'scroll'],
-    ...(isGrid ? ([['← →', 'columns'], ['[ ]', 'sheets'], ['Enter', 'formula']] as [string, string][]) : []),
-    ['v', 'inline / side by side'],
-    ['c', 'comment'],
-    ['h', 'history'],
+/** The legend, then the pane's keys as buttons: each one's letter presses it while the pane has the keys. */
+function keysRow($: EngineInterface, ctx: Ctx, isGrid: boolean, sheets: number): RenderNode {
+  const { Box, Text, Button } = ctx.els
+  const { p } = ctx
+  const side = (p.mode === 'auto' ? autoMode(ctx.columns) : p.mode) === 'side'
+  const docs = ctx.shown?.docs.length ?? 0
+  const narrow = ctx.columns < 90
+  const tools: { key: string; label: string; hotkey: string; onPress: () => void }[] = [
+    { key: 'k-view', label: side ? 'Inline' : 'Side by side', hotkey: 'v', onPress: () => void toggleMode($, ctx.columns) },
+    { key: 'k-history', label: 'History', hotkey: 'h', onPress: () => void setView($, 'history') },
+    ...(docs > 1 ? [{ key: 'k-doc', label: 'Next document', hotkey: 'd', onPress: () => void stepDoc($, 1) }] : []),
+    ...(isGrid && sheets > 1 ? [{ key: 'k-sheet', label: 'Next sheet', hotkey: 's', onPress: () => void update($, pane, old => ({ ...old, sheet: (old.sheet + 1) % sheets, top: 0, left: 0, cell: null })) }] : []),
+    { key: 'k-list', label: p.isListOpen ? 'Hide list' : 'All changes', hotkey: 'l', onPress: () => void update($, pane, old => ({ ...old, isListOpen: !old.isListOpen })) },
   ]
-  const legend: [string, string, string][] = [
-    ['−', 'removed', pal.error],
-    ['+', 'added', pal.success],
-    ['~', 'changed', pal.warning],
-  ]
-  let used = 30
-  const shownKeys = keys.filter(([k, label]) => {
-    used += strWidth(k) + strWidth(label) + 3
-    return used <= ctx.columns
-  })
   return (
-    <Text wrap="truncate-end">
-      {legend.map(([k, label, color]) => (
-        <Text key={`l${label}`}>
-          <Text color={color} bold>{k}</Text>
-          <Text color={pal.dim}> {label}  </Text>
-        </Text>
-      ))}
-      {shownKeys.length > 0 ? <Text color={pal.dim}>│ </Text> : null}
-      {shownKeys.map(([k, label]) => (
-        <Text key={`k${label}`}>
-          <Text color={pal.subtle} bold>{k}</Text>
-          <Text color={pal.dim}> {label}  </Text>
-        </Text>
-      ))}
-    </Text>
+    <Box flexDirection="column">
+      <Box flexDirection="row" columnGap={2}>
+        {tools.slice(0, narrow ? 3 : tools.length).map(t => (
+          <Button key={t.key} label={t.label} hotkey={t.hotkey} plain dimColor onPress={t.onPress} />
+        ))}
+      </Box>
+      <Text wrap="truncate-end">
+        <Text color={pal.error} bold>−</Text>
+        <Text color={pal.dim}> removed  </Text>
+        <Text color={pal.success} bold>+</Text>
+        <Text color={pal.dim}> added  </Text>
+        <Text color={pal.warning} bold>~</Text>
+        <Text color={pal.dim}> changed  · Esc: back to Claude{isGrid && !narrow ? ' · click a cell for its formula' : ''}</Text>
+      </Text>
+    </Box>
   )
 }
 
