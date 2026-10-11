@@ -674,8 +674,9 @@ async function capture($: EngineInterface, path: string, seen: Seen): Promise<{ 
     } catch (error) {
       const text = String((error as { message?: unknown })?.message ?? error)
       // Windows: Excel and Word hold the files they have open.
-      if (/EBUSY|EPERM|EACCES|locked|being used/i.test(text)) return { reason: 'it is open in another app that is holding it (close it there, then press Reload)' }
-      return { reason: 'it could not be read' }
+      if (/ENOENT/.test(text)) return { reason: 'it was gone before it could be read' }
+      // Windows: Excel and Word hold the files they have open, so they can't be read.
+      return { reason: 'it couldn’t be read; it may be open in another app such as Excel (close it there, and it’s caught at the end of Claude’s next turn)' }
     }
   }
   const key = contentKey(base64)
@@ -784,13 +785,13 @@ export async function noteStart($: EngineInterface, turnId: string) {
   const by: Who = idx.isReady ? 'you' : 'first'
   for (const e of d.edits) {
     const fam = familyOfPath(e.path) ?? addFamily(e.path)
-    addVersion(fam, { path: e.path, key: e.key, size: e.seen.size, at: e.seen.mtime || startedAt, by })
+    addVersion(fam, { path: e.path, key: e.key, size: e.seen.size, at: startedAt, by })
     idx.files[e.path] = { key: e.key, size: e.seen.size, mtime: e.seen.mtime, family: fam.id }
   }
   for (const e of d.created) {
     // A file the person added between turns is a document of its own (or one they had before).
     const fam = familyOfPath(e.path) ?? addFamily(e.path)
-    addVersion(fam, { path: e.path, key: e.key, size: e.seen.size, at: e.seen.mtime || startedAt, by })
+    addVersion(fam, { path: e.path, key: e.key, size: e.seen.size, at: startedAt, by })
     idx.files[e.path] = { key: e.key, size: e.seen.size, mtime: e.seen.mtime, family: fam.id }
   }
   for (const path of d.deleted) {
@@ -834,7 +835,8 @@ export async function noteEnd($: EngineInterface, status: Turn['status'], by: 'c
     if (!touched.includes(fam.id)) touched.push(fam.id)
   }
   const stamp = (path: string, key: string, seen: Seen, fam: Family) => (idx.files[path] = { key, size: seen.size, mtime: seen.mtime, family: fam.id })
-  const base = (path: string, key: string | null, size: number, at: number) => ({ path, key, size, at, by: by as Who, turn: running.id, ...(note ? { note } : {}) })
+  // A version's time is when it was noted; the file's own time only orders what happened in the turn.
+  const base = (path: string, key: string | null, size: number, at: number) => ({ path, key, size, at: Math.min(Math.max(at, running.start), endedAt), by: by as Who, turn: running.id, ...(note ? { note } : {}) })
 
   // Renamed or moved: a file gone and a new one with the same content.
   const gone = new Set(d.deleted)
@@ -1048,12 +1050,13 @@ export async function prune($: EngineInterface, keep: Retention) {
   const cutoff = Date.now() - keep.days * 24 * 60 * 60 * 1000
   for (const fam of Object.values(idx.families)) {
     const keepIds = new Set<string>()
-    fam.versions.forEach((id, k) => {
-      const v = idx.versions[id]
-      if (!v) return
-      const isNewest = k === fam.versions.length - 1
-      const isRecent = k >= fam.versions.length - keep.versions && v.at >= cutoff
-      if (isNewest || isRecent || Object.values(idx.files).some(f => f.key === v.key && f.family === fam.id)) keepIds.add(id)
+    const list = fam.versions.map(id => idx.versions[id]).filter((v): v is Version => !!v)
+    // The window: versions from the last `days`, and the one just before them, so the first change in the window still has its before.
+    const firstRecent = list.findIndex(v => v.at >= cutoff)
+    const from = Math.max(firstRecent < 0 ? list.length - 1 : firstRecent - 1, list.length - keep.versions, 0)
+    list.forEach((v, k) => {
+      const isOnDisk = Object.values(idx.files).some(f => f.key === v.key && f.family === fam.id && f.key !== null) && k === list.length - 1
+      if (k >= from || isOnDisk) keepIds.add(v.id)
     })
     for (const id of fam.versions) if (!keepIds.has(id)) delete idx.versions[id]
     fam.versions = fam.versions.filter(id => keepIds.has(id))

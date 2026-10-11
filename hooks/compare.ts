@@ -268,9 +268,13 @@ export function compareLines(before: DocRow[], after: DocRow[], isFormatted: boo
     (a, b) => {
       const x = before[a]!
       const y = after[b]!
-      if ((x.pic === undefined) !== (y.pic === undefined)) return 0
       if (x.text === y.text) return 1
-      return similarity(x.text, y.text)
+      // A picture is the same picture or another one, never an edited one.
+      if (x.pic !== undefined || y.pic !== undefined) return 0
+      const score = similarity(x.text, y.text)
+      // A heading in the same place, at the same level, renamed: still that heading.
+      const isHeading = /^h[123]$/.test(x.style ?? '') && x.style === y.style
+      return isHeading ? Math.max(score, 0.3) : score
     },
     0.5,
     0.2,
