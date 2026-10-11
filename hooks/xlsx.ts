@@ -15,8 +15,9 @@ import { isLate } from './deadline'
 import { attr, scanXml } from './xml'
 import { openZip } from './zip'
 
-const MAX_SHEET_ROWS = 500
-const MAX_SHEET_COLS = 40
+/** Rows and columns compared per sheet: well past what a person reads, short of what a hook's time allows. */
+const MAX_SHEET_ROWS = 5000
+const MAX_SHEET_COLS = 60
 /** Cells kept for the calculator, across the workbook: beyond this, formulas that reach further show as not calculated. */
 const MAX_CELLS = 200_000
 /**
@@ -313,7 +314,7 @@ export function readXlsx(bytes: Uint8Array): GridResult {
     // Once the workbook's reading allowance (or its time) is used up, later sheets are listed but not read.
     if (sheetBytesLeft <= 0 || isLate()) {
       isTruncated = true
-      return { ...sheet, cells, maxRow: 1, maxCol: 1, isPartial: true }
+      return { ...sheet, cells, maxRow: 1, maxCol: 1, isPartial: true, merges: [] as string[] }
     }
     const start = zip.textStart(sheet.path, Math.max(SHEET_MIN_BYTES, Math.min(SHEET_START_BYTES, sheetBytesLeft)))
     const xml = start?.text ?? ''
@@ -321,6 +322,7 @@ export function readXlsx(bytes: Uint8Array): GridResult {
     // Only the start of the sheet was read, or the scan stopped once it had what the pane needs.
     let isPartial = start?.isCut === true
     const sharedFormulas = new Map<string, { formula: string; row: number; col: number }>()
+    const merges: string[] = []
     let row = 0
     let col = 0
     let cell: { row: number; col: number; type: string; style: number; v: string | null; f: string | null; fAttrs: string; inline: string[] } | null = null
@@ -330,6 +332,11 @@ export function readXlsx(bytes: Uint8Array): GridResult {
     let inT = false
     scanXml(xml, {
       open: (name, attrs, isEmpty) => {
+        if (name === 'mergeCell') {
+          const ref = attr(attrs, 'ref')
+          if (ref && merges.length < 2000) merges.push(clean(ref))
+          return
+        }
         if (name === 'row') {
           const r = attr(attrs, 'r')
           row = r ? Number(r) : row + 1
@@ -411,7 +418,7 @@ export function readXlsx(bytes: Uint8Array): GridResult {
       },
     })
     isTruncated ||= isPartial
-    return { ...sheet, cells, maxRow: Math.max(maxRow, 1), maxCol: Math.max(maxCol, 1), isPartial }
+    return { ...sheet, cells, maxRow: Math.max(maxRow, 1), maxCol: Math.max(maxCol, 1), isPartial, merges }
   })
 
   const byName = new Map(books.map(b => [b.name, b]))
@@ -463,6 +470,7 @@ export function readXlsx(bytes: Uint8Array): GridResult {
       isCut: book.isPartial || book.maxRow > MAX_SHEET_ROWS || book.maxCol > MAX_SHEET_COLS,
     }
     if (book.isHidden) sheet.isHidden = true
+    if (book.merges.length > 0) sheet.merges = book.merges
     return sheet
   })
   const doc: GridResult = { kind: 'grid', sheets }

@@ -2,7 +2,7 @@
 # Copyright (c) 2026 Parag Pandya. MIT License, see LICENSE.
 # Panda Redline: https://github.com/paragpandyareal/panda-redline
 # Based on Lazy Panda Panel: https://github.com/paragpandyareal/lazy-panda-panel
-"""Hands one Word, Excel or PDF file's bytes to the Panda Redline.
+"""Hands one document's bytes to Panda Redline.
 
 Claude Code lets a mod read files of up to 4 MB itself. For a larger
 document, the mod runs this script, which reads the file and prints it as
@@ -19,7 +19,7 @@ import os
 import sys
 
 MAX_BYTES = 50 * 1024 * 1024
-KINDS = (".docx", ".xlsx", ".pdf")
+KINDS = (".docx", ".xlsx", ".xlsm", ".pdf", ".md", ".markdown", ".html", ".htm", ".csv", ".tsv", ".txt", ".adf")
 
 
 def main():

@@ -8,7 +8,7 @@ export type Span = { t: string; b?: 1; i?: 1; c?: 1; l?: 1; s?: 1; d?: 1 }
 /**
  * How a row is drawn. Formatted documents (Markdown, ADF, HTML, Word) use
  * h1–h3, p, li, quote, code, th/td, panel, rule and space; plain files draw
- * every row as a numbered line.
+ * every row as a line.
  */
 export type RowStyle =
   | 'h1' | 'h2' | 'h3' | 'p' | 'li' | 'quote' | 'code' | 'th' | 'td' | 'panel' | 'rule' | 'space'
@@ -18,12 +18,12 @@ export type Tone = 'info' | 'note' | 'warning' | 'error' | 'success' | 'tip'
 
 /** One row of a document: a line, a paragraph, a heading, a list item, a table row. */
 export type DocRow = {
-  /** The row's plain text: what a comment quotes. */
+  /** The row's plain text. */
   text: string
   /** Where the row is, in words Claude can find it by: "line 12", "paragraph 4 (under "Pricing")". */
   anchor: string
   style?: RowStyle
-  /** What one row is called, for a range's label: "line", "paragraph", "block". */
+  /** What one row is called: "line", "paragraph", "block". */
   unit?: string
   /** The text with emphasis, when the row has any. */
   spans?: Span[]
@@ -32,20 +32,18 @@ export type DocRow = {
   marker?: string
   /** A panel's or callout's kind. */
   tone?: Tone
-  /** A picture's row: its index in the document's `pictures`, or its number in a Markdown or HTML file. */
+  /** A picture's row: its index in the document's pictures. */
   pic?: number
-  /** A Markdown or HTML picture's address as written: a file beside the document, a data: URI, or a web address. */
+  /** A Markdown or HTML picture's address as written. */
   src?: string
 }
 
-/** A picture's pixels for the preview, scaled down, 3 bytes a pixel; `fullWidth` × `fullHeight` its real size. */
+/** A picture's pixels, scaled down, 3 bytes a pixel; `fullWidth` × `fullHeight` its real size. */
 export type Pixels = { width: number; height: number; rgb: Uint8Array; fullWidth: number; fullHeight: number }
 
-/** A picture in a document: read and decoded only when the person looks at it. */
+/** A picture in a document: read and decoded only when asked. */
 export type Picture = {
-  /** What the document calls it: alt text, a title, or a file name; may be empty. */
   label: string
-  /** Its pixels, or why it can't be shown ("an EMF drawing"). */
   load: () => Promise<Pixels | string> | Pixels | string
 }
 
@@ -58,6 +56,8 @@ export type GridSheet = {
   rows: GridCell[][]
   isCut?: boolean
   isHidden?: boolean
+  /** Merged ranges as Excel writes them: "A1:C1". */
+  merges?: string[]
 }
 
 export type Doc =
@@ -66,77 +66,86 @@ export type Doc =
       path: string
       rows: DocRow[]
       note?: string
-      /** Drawn as a formatted document (no line numbers), and whether a source view exists. */
+      /** Drawn as a formatted document (no line numbers). */
       isFormatted?: boolean
       hasSource?: boolean
-      /** The pictures in it, in order; their rows name them by `pic`. */
       pictures?: Picture[]
     }
   | { kind: 'grid'; path: string; sheets: GridSheet[]; note?: string }
   | { kind: 'image'; path: string; png: string; width: number; height: number }
-  /** `isNotice`: not a failure, something the person can act on (a large file without Python). */
   | { kind: 'error'; path: string; message: string; isNotice?: boolean }
 
-/** What the person highlighted, as the comment will name it. */
-export type ReviewSelection = {
-  path: string
-  /** Grid only: the sheet's name, as stored (the label quotes it Excel's way). */
-  sheet?: string
-  /** Made in a formatted file's source view. */
-  raw?: true
-  label: string
-  quote: string
-  /** Rows (or grid rows) the highlight covers, to draw it: first and last. */
-  from: number
-  to: number
-  /** Grid only: first and last column. */
-  colFrom?: number
-  colTo?: number
-}
+/** What the pane is showing. */
+export type PaneView = 'changes' | 'history' | 'pick-before' | 'pick-after' | 'settings' | 'restore' | 'keep' | 'clear' | 'pick-parent'
 
-/**
- * A comment is tied to its file and the text it quotes, not to row numbers:
- * when the file changes, `from`/`to` are found again by the quote, and a
- * comment whose text is gone is marked stale.
- */
-export type ReviewComment = ReviewSelection & {
-  id: string
-  text: string
-  /** draft: waiting here; queued: in the prompt box; sent: Claude is on it. */
-  status: 'draft' | 'queued' | 'sent'
-  /** The send it went out in. */
-  batch?: string
-  /** Its quoted text is no longer in the file. */
-  isStale?: true
-}
-
-/** What Claude's last edit changed in the open file: rows of a document, cells of a sheet ("sheet:row:col"). */
-export type Changed = { path: string; key: number; rows: number[]; cells: string[] }
-
-export type View = {
-  /** First visual line (or grid row) in view. */
+export type PaneState = {
+  /** The turn shown (null: Claude's latest) and which of its documents. */
+  turn: string | null
+  doc: number
+  /** A document chosen by name or from its timeline, with chosen versions (null: the defaults). */
+  family: string | null
+  before: string | null
+  after: string | null
+  view: PaneView
+  /** The version Restore would put back. */
+  target: string | null
+  /** Inline or side by side; auto picks by the pane's width. */
+  mode: 'auto' | 'inline' | 'side'
   top: number
-  /** Grid only: first column in view. */
   left: number
   sheet: number
-  /** Showing a formatted file's raw source instead. */
-  raw?: boolean
-  /** The keyboard cursor and where its selection started: [row, column]. */
-  cur?: [number, number]
-  anc?: [number, number]
+  /** The change the person is on, by its index in the list. */
+  focus: number | null
+  /** Folds of unchanged lines the person opened. */
+  open: string[]
+  /** A cell picked, to see its old and new formula: "row:col" of the comparison. */
+  cell: string | null
+  /** The list of changes shown in full, rather than one line. */
+  isListOpen: boolean
+  /** The comment box is open on the focused change. */
+  isCommenting: boolean
+}
+
+export type RedlineSettings = {
+  /** A line in the transcript after Claude changes documents (Claude never sees it). */
+  notices: boolean
+  /** Open the pane by itself after Claude changes documents. */
+  autoOpen: boolean
+  /** When Claude is told about a restore or a keep: with the person's next message, or at once. */
+  tell: 'next' | 'now'
+  keepVersions: number
+  keepDays: number
+}
+
+/** A comment on a change, waiting to go to Claude. */
+export type RedlineComment = {
+  id: string
+  path: string
+  /** Where the change is: "Budget!B6", "paragraph under “Pricing”". */
+  label: string
+  before: string
+  after: string
+  text: string
+  status: 'draft' | 'sent'
+  /** The change it is on: the document and the change's place in the list. */
+  family: string
+  change: number
 }
 
 declare module 'claude-code' {
   interface PluginState {
     'panda-redline': {
-      files: string[]
-      /** The file shown, and a counter bumped each time it is (re)read; the document itself is held by the hooks module. */
-      open: { path: string | null; version: number }
-      view: View
-      selection: ReviewSelection | null
-      comments: ReviewComment[]
-      autoOpen: boolean
-      changed: Changed | null
+      pane: PaneState
+      /** Bumped when the saved versions change, so the pane draws again. */
+      tick: number
+      /** New changes to glow: a counter and the changes' indexes in the turn's first document. */
+      flash: { key: number; turn: string | null; fresh: number[] }
+      prefs: RedlineSettings
+      comments: RedlineComment[]
+      /** Notes waiting to go to Claude with the next message. */
+      notes: string[]
+      /** A line shown at the top of the pane: what just happened, or what went wrong. */
+      banner: { text: string; tone: 'info' | 'error' | 'success' } | null
     }
   }
 }
