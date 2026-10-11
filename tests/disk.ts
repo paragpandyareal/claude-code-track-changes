@@ -75,7 +75,7 @@ export class Disk {
 }
 
 /** The mocks Panda Redline needs, all answered from the disk. Starts the session in /w. */
-export function mount(on: On, disk: Disk, options: { store?: Record<string, unknown>; env?: Record<string, string>; onLog?: (text: string) => void; onSubmit?: (text: string) => void; box?: string } = {}) {
+export function mount(on: On, disk: Disk, options: { store?: Record<string, unknown>; env?: Record<string, string>; onLog?: (text: string) => void; onSubmit?: (text: string, context: readonly string[]) => void; box?: string } = {}) {
   mock.store(on, options.store ?? {})
   const env: Record<string, string> = { HOME: '/home/u', ...(options.env ?? {}) }
   on('session.start', (_, e) => ({ cwd: e.cwd }))
@@ -94,7 +94,7 @@ export function mount(on: On, disk: Disk, options: { store?: Record<string, unkn
   on('prompt.read', () => ({ value: { text: options.box ?? '', cursor: 0 } }))
   on('prompt.fill', () => ({ isFilled: true }))
   on('prompt.submit', (_, e) => {
-    options.onSubmit?.(e.text)
+    options.onSubmit?.(e.text, (e as { context?: readonly string[] }).context ?? [])
     return { text: e.text }
   })
   on('fs.exists', (_, e) => ({ value: disk.files.has(e.path) || disk.isDir(e.path) }))

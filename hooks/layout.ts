@@ -131,7 +131,7 @@ const MARK: Record<'del' | 'add' | 'mod' | 'same', Seg> = {
 const isQuiet = (row: DocRow | undefined) => !row || row.style === 'space' || (row.text.trim() === '' && row.pic === undefined)
 
 /** The ops shown, with long runs of kept rows folded into one line unless opened. */
-function foldRuns<T extends { kind: string }>(ops: T[], open: ReadonlySet<string>, prefix: string): ({ op: T; at: number } | { fold: string; count: number; at: number })[] {
+function foldRuns<T extends { kind: string }>(ops: T[], open: ReadonlySet<string>, prefix: string, isQuietOp: (op: T) => boolean = () => false): ({ op: T; at: number } | { fold: string; count: number; at: number })[] {
   const out: ({ op: T; at: number } | { fold: string; count: number; at: number })[] = []
   let k = 0
   const hasChanges = ops.some(o => o.kind !== 'same')
@@ -149,11 +149,14 @@ function foldRuns<T extends { kind: string }>(ops: T[], open: ReadonlySet<string
     const keepTail = last ? 0 : CONTEXT
     const id = `${prefix}${k}`
     const hidden = end - k - keepHead - keepTail
-    if (!hasChanges || hidden < 3 || open.has(id)) {
+    // Blank lines between paragraphs aren't counted as paragraphs.
+    let count = 0
+    for (let j = k + keepHead; j < end - keepTail; j += 1) if (!isQuietOp(ops[j]!)) count += 1
+    if (!hasChanges || hidden < 3 || count < 2 || open.has(id)) {
       for (let j = k; j < end; j += 1) out.push({ op: ops[j]!, at: j })
     } else {
       for (let j = k; j < k + keepHead; j += 1) out.push({ op: ops[j]!, at: j })
-      out.push({ fold: id, count: hidden, at: k + keepHead })
+      out.push({ fold: id, count, at: k + keepHead })
       for (let j = end - keepTail; j < end; j += 1) out.push({ op: ops[j]!, at: j })
     }
     k = end
@@ -176,7 +179,7 @@ export function layoutLines(cmp: LinesComparison, changes: Change[], opts: { wid
   const changeAt: number[] = changes.map(() => 0)
   // A run of added or removed rows is one change: each row of it carries that change.
   let current: number | undefined
-  const shown = foldRuns(cmp.ops, opts.open, 'L')
+  const shown = foldRuns(cmp.ops, opts.open, 'L', op => op.kind === 'same' && isQuiet(cmp.after[op.b]))
   for (const item of shown) {
     if ('fold' in item) {
       current = undefined

@@ -2461,22 +2461,22 @@ function cellDetail(ctx: Ctx, cmp: GridComparison, sheetIndex: number, key: stri
   const where = op.kind !== 'del' && col.kind !== 'del' ? address(col.b, op.b) : op.kind !== 'add' && col.kind !== 'add' ? address(col.a, op.a) : ''
   const show = (cell: { v: string; f?: string } | undefined) => (cell ? `${cell.f ? `${cell.f} = ` : ''}${cell.v || '(empty)'}` : '(not there)')
   const isSame = before && after && before.v === after.v && (before.f ?? '') === (after.f ?? '')
+  if (isSame) {
+    return (
+      <Text wrap="truncate-end">
+        <Text color={pal.formula} bold>ƒx {where}  </Text>
+        <Text color={pal.text}>{show(after)}</Text>
+        <Text color={pal.dim}>  (unchanged)</Text>
+      </Text>
+    )
+  }
   return (
     <Text wrap="truncate-end">
       <Text color={pal.formula} bold>ƒx {where}  </Text>
-      {isSame ? (
-        <Text color={pal.text}>
-          {show(after)}
-          <Text color={pal.dim}>  (unchanged)</Text>
-        </Text>
-      ) : (
-        <>
-          <Text color={pal.subtle}>before </Text>
-          <Text strikethrough color={pal.text} backgroundColor="diffRemoved">− {show(before)}</Text>
-          <Text color={pal.subtle}>  now </Text>
-          <Text underline color={pal.text} backgroundColor="diffAdded">+ {show(after)}</Text>
-        </>
-      )}
+      <Text color={pal.subtle}>before </Text>
+      <Text strikethrough color={pal.text} backgroundColor="diffRemoved">− {show(before)}</Text>
+      <Text color={pal.subtle}>  now </Text>
+      <Text underline color={pal.text} backgroundColor="diffAdded">+ {show(after)}</Text>
     </Text>
   )
 }
