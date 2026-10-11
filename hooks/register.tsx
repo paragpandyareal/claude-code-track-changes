@@ -522,14 +522,14 @@ function cleanRows(rows: (DocRow & { cells?: string[]; isHeader?: boolean })[]):
 /** An empty document of the kind a file is: what a deleted file, or one not there yet, compares as. */
 export const emptyOf = (path: string): Doc => (['xlsx', 'xlsm', 'csv', 'tsv'].includes(extOf(path)) ? { kind: 'grid', path, sheets: [] } : { kind: 'lines', path, rows: [], isFormatted: !['txt'].includes(extOf(path)) })
 
-/** An Office file saved with a password is not a zip but an older compound file. */
+/** A locked Office file is not a zip but an older compound file. */
 const isLocked = (bytes: Uint8Array) => bytes[0] === 0xd0 && bytes[1] === 0xcf && bytes[2] === 0x11 && bytes[3] === 0xe0
 
 export async function parseBytes(path: string, bytes: Uint8Array): Promise<Doc> {
   const ext = extOf(path)
   try {
     if (['xlsx', 'xlsm', 'docx'].includes(ext) && isLocked(bytes)) {
-      return { kind: 'error', path, message: `This ${kindName(ext)} is protected with a password, so its changes can't be shown. Panda Redline still keeps its versions, and Restore still works.`, isNotice: true }
+      return { kind: 'error', path, message: `This ${kindName(ext)} is locked, so only its own app can open it and its changes can’t be shown here. Panda Redline still keeps its versions, and Restore still works.`, isNotice: true }
     }
     if (ext === 'xlsx' || ext === 'xlsm' || ext === 'docx' || ext === 'pdf') {
       startReading(6000)
@@ -540,7 +540,7 @@ export async function parseBytes(path: string, bytes: Uint8Array): Promise<Doc> 
         }
         if (ext === 'pdf') {
           const pdf = await readPdf(bytes)
-          if (pdf.kind === 'error') return { ...pdf, path, message: /password|encrypt/i.test(pdf.message) ? 'This PDF is protected with a password, so its changes can’t be shown. Panda Redline still keeps its versions.' : pdf.message }
+          if (pdf.kind === 'error') return { ...pdf, path }
           return { kind: 'lines', path, rows: cleanRows(pdf.rows), isFormatted: true, ...(pdf.note ? { note: pdf.note } : {}) }
         }
         return { ...readXlsx(bytes), path }
@@ -1279,7 +1279,7 @@ async function compareOf($: EngineInterface, before: Version | null, after: Vers
   return out
 }
 
-type AnyLaid = Laid & { moreLeft?: number; moreRight?: number }
+type AnyLaid = Laid & { moreLeft?: number; moreRight?: number; shownCols?: number[] }
 const laidCache = new Map<string, AnyLaid>()
 
 function laidOf(c: Compared, p: PaneState, width: number, mode: 'inline' | 'side', sheet: number): AnyLaid {
@@ -1304,7 +1304,7 @@ const forgetDrawings = () => {
 }
 
 /** What a surface last drew, for clicks and keys. */
-type Drawn = { laid: Laid; top: number; height: number; changes: Change[]; sheet: number; isGrid: boolean; sheets: number; columns: number }
+type Drawn = { laid: AnyLaid; top: number; height: number; changes: Change[]; sheet: number; isGrid: boolean; sheets: number; columns: number }
 const drawnBy = new Map<RenderSurface, Drawn>()
 
 // ── Opening and moving about ──
@@ -1352,7 +1352,9 @@ async function focusChange($: EngineInterface, index: number, surface: RenderSur
   const change = changes[i]!
   await update($, pane, old => {
     const sheet = change.sheet ?? old.sheet
-    const left = change.col !== undefined ? Math.max(0, change.col - 1) : sheet !== old.sheet ? 0 : old.left
+    // Scrolled sideways only when the change's column isn't in view already.
+    const isShown = change.col === undefined || (sheet === d?.sheet && (d.laid.shownCols ?? []).includes(change.col))
+    const left = sheet !== old.sheet ? (change.col !== undefined && change.col > 3 ? change.col - 1 : 0) : isShown ? old.left : Math.max(0, (change.col ?? 1) - 1)
     const isHere = sheet === (d?.sheet ?? 0) && left === old.left
     const at = isHere ? (d?.laid.changeAt[i] ?? 0) : -1
     const height = d?.height ?? 10
@@ -2452,7 +2454,7 @@ function changesView($: EngineInterface, ctx: Ctx): Part[] {
   const hasActions = !ctx.isTiny || ctx.rows >= 12
   extras += listLines + (p.isCommenting ? (ctx.isCompact ? 1 : 3) : 0) + (drafts.length > 0 ? 1 : 0) + (hasActions ? 1 : 0) + (ctx.isCompact ? 0 : 2)
   const fixed = (ctx.isTiny ? 2 : 3) + (ctx.banner ? 1 : 0) + (vault.index.asks[0] && !ctx.isTiny ? (ctx.isCompact ? 1 : 3) : 0) + extras + (ctx.waiting.length > 0 ? 1 : 0)
-  const height = clamp(ctx.rows - fixed - 1, 3, 200)
+  const height = clamp(ctx.rows - fixed - (ctx.isTiny ? 0 : 1), ctx.isTiny ? 2 : 3, 200)
   const mode = p.mode === 'auto' ? autoMode(ctx.columns) : p.mode
   const width = Math.max(30, ctx.columns - 3)
   const laid = laidOf(c, p, width, mode, sheet)
@@ -2534,7 +2536,7 @@ function changeList($: EngineInterface, ctx: Ctx, c: Compared): RenderNode {
   const current = focus !== null ? c.changes[focus] : undefined
   const head = (
     <Box flexDirection="row" columnGap={1}>
-      <Button key="list-toggle" plain onPress={() => void update($, pane, old => ({ ...old, isListOpen: !old.isListOpen }))}>
+      <Button key="list-toggle" hotkey="l" plain onPress={() => void update($, pane, old => ({ ...old, isListOpen: !old.isListOpen }))}>
         <Text color={pal.accent} bold>{p.isListOpen ? '▾ ' : '▸ '}</Text>
         <Text bold>{current ? `${focus! + 1} of ${n}` : 'Changes'}</Text>
       </Button>
@@ -2651,13 +2653,25 @@ function keysRow($: EngineInterface, ctx: Ctx, isGrid: boolean, sheets: number):
     { key: 'k-view', label: side ? 'Inline' : 'Side by side', hotkey: 'v', onPress: () => void toggleMode($, ctx.columns) },
     { key: 'k-history', label: 'History', hotkey: 'h', onPress: () => void setView($, 'history') },
     ...(docs > 1 ? [{ key: 'k-doc', label: 'Next document', hotkey: 'd', onPress: () => void stepDoc($, 1) }] : []),
+    ...(isGrid && p.focus !== null && ctx.c?.changes[p.focus]?.col !== undefined
+      ? [
+          {
+            key: 'k-formula',
+            label: p.cell ? 'Hide formula' : 'Formula',
+            hotkey: 'f',
+            onPress: () => {
+              const change = ctx.c?.changes[p.focus ?? -1]
+              if (change?.col !== undefined) void update($, pane, old => ({ ...old, cell: old.cell ? null : `${change.op}:${change.col}` }))
+            },
+          },
+        ]
+      : []),
     ...(isGrid && sheets > 1 ? [{ key: 'k-sheet', label: 'Next sheet', hotkey: 's', onPress: () => void update($, pane, old => ({ ...old, sheet: (old.sheet + 1) % sheets, top: 0, left: 0, cell: null })) }] : []),
-    { key: 'k-list', label: p.isListOpen ? 'Hide list' : 'All changes', hotkey: 'l', onPress: () => void update($, pane, old => ({ ...old, isListOpen: !old.isListOpen })) },
   ]
   return (
     <Box flexDirection="column">
       <Box flexDirection="row" columnGap={2}>
-        {tools.slice(0, narrow ? 3 : tools.length).map(t => (
+        {tools.slice(0, narrow ? 4 : tools.length).map(t => (
           <Button key={t.key} label={t.label} hotkey={t.hotkey} plain dimColor onPress={t.onPress} />
         ))}
       </Box>

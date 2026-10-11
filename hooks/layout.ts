@@ -318,7 +318,7 @@ function fitCell(segs: Seg[], width: number, isNumber: boolean): Seg[] {
   return [...out, { t: ' '.repeat(Math.max(0, width - segWidth(out))) }]
 }
 
-export type GridLaid = Laid & { moreLeft: number; moreRight: number }
+export type GridLaid = Laid & { moreLeft: number; moreRight: number; shownCols: number[] }
 
 export function layoutGrid(sheet: SheetComparison, sheetIndex: number, changes: Change[], opts: { width: number; mode: 'inline' | 'side'; open: ReadonlySet<string>; left: number; picked: string | null }): GridLaid {
   const cols = columnsOf(sheet)
@@ -340,18 +340,22 @@ export function layoutGrid(sheet: SheetComparison, sheetIndex: number, changes: 
     return Math.min(side ? 14 : MAX_CELL, w)
   })
   const halfWidth = side ? Math.floor((opts.width - 3) / 2) : opts.width
-  // As many columns as fit, from the first one in view.
+  // As many columns as fit, from the first one in view; the first column (the row labels) stays, as a frozen column in Excel.
   const left = Math.max(0, Math.min(opts.left, cols.length - 1))
   const shownCols: number[] = []
   let used = lead
-  for (let c = left; c < cols.length; c += 1) {
+  if (left > 0 && cols.length > 1) {
+    shownCols.push(0)
+    used += (widths[0] ?? MIN_CELL) + 2
+  }
+  for (let c = left === 0 ? 0 : Math.max(1, left); c < cols.length; c += 1) {
     const need = (widths[c] ?? MIN_CELL) + 2
     if (used + need > halfWidth && shownCols.length > 0) break
     shownCols.push(c)
     used += need
   }
-  const moreLeft = left
-  const moreRight = Math.max(0, cols.length - left - shownCols.length)
+  const moreLeft = left > 1 ? left - 1 : 0
+  const moreRight = Math.max(0, cols.length - 1 - (shownCols[shownCols.length - 1] ?? 0))
   const changeAt: number[] = changes.map(() => 0)
   const rows: DRow[] = []
   // Column letters: a removed column's letter struck through, an added one's underlined.
@@ -441,7 +445,7 @@ export function layoutGrid(sheet: SheetComparison, sheetIndex: number, changes: 
       rows.push({ segs: one.segs, cells: one.cells, ...(one.change !== undefined ? { change: one.change } : {}) })
     }
   }
-  return { rows, changeAt, moreLeft, moreRight }
+  return { rows, changeAt, moreLeft, moreRight, shownCols }
 }
 
 /** The display column a change's cell is in, so the view can scroll sideways to it. */

@@ -2,7 +2,7 @@
   "name": "panda-redline",
   "displayName": "Panda Redline",
   "version": "0.1.0",
-  "description": "Track changes for everything Claude edits. See exactly what Claude changed in your Excel, Word, PDF, Markdown, Confluence, HTML, CSV and text files, in red and green, and put any earlier version back.",
+  "description": "Track changes for everything Claude edits. See what Claude changed in your Excel, Word, PDF, Markdown, Confluence, HTML, CSV and text files, in red and green, and put any version back. Nothing to install (documents over 4 MB need Python 3).",
   "author": {
     "name": "Parag Pandya",
     "url": "https://github.com/paragpandyareal"

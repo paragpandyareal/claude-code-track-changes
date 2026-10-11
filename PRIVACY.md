@@ -1,25 +1,29 @@
 # Privacy policy
 
-_Panda Redline, a Claude Code plugin by Parag Pandya. Last updated 10 October 2026._
+_Panda Redline, a Claude Code plugin by Parag Pandya. Last updated 11 October 2026._
 
-**In short: the plugin collects nothing and sends nothing to its author or to anyone else.**
+**In short: the plugin collects nothing and sends nothing to its author or to anyone else. It keeps copies of your documents on your own computer, so it can show what changed.**
 
 ## What it reads
-The plugin reads the files you open in its pane, and files Claude writes in your session, so it can show them. Those files can contain personal information, such as names or email addresses in a document. They are read on your own computer and held in memory only while the pane is open. It also reads a few environment variables that say what kind of terminal and computer this is (for example `TERM`), never anything personal.
+The documents in the folder you run Claude Code in (Excel, Word, PDF, Markdown, Confluence, HTML, CSV and text files), when Claude's turn starts and ends, so it can tell what Claude changed. Those documents can contain personal information. They're read on your own computer. It also reads a few environment variables that say where Claude Code's settings folder is and whether your computer has a desktop (for example `HOME`), never anything personal.
 
 ## What it stores
-- Two settings, in Claude Code's own plugin store on your computer: auto-open on or off, and whether you've seen the welcome message.
+- **Copies of your tracked documents**, one per version, in Panda Redline's own folder inside Claude Code's settings folder on your computer (`~/.claude/panda-redline/`, or `%USERPROFILE%\.claude\panda-redline\` on Windows). Each content is stored once. Copies are let go after the last 20 versions of a document or 7 days, whichever comes first; you can change both, and clear everything with `/redline space`.
+- **A record of the versions**: file names, times, who made each version (Claude or you), and your answers to "is this a new version of that?".
+- **Three small settings** in Claude Code's own plugin store: your settings, a note waiting to go to Claude, and whether you've seen the welcome message.
 
-Your documents and comments are not saved anywhere by the plugin. They last for the session only.
+Comments you're writing last for the session only.
 
 ## What it sends, and where
 - **Nothing to the author or any third party.** There is no server, no account, no analytics and no telemetry.
-- **Your comments, to Claude, only when you press Send** (or Enter after "Edit before sending"). They go as a normal prompt in your own Claude Code session, with the quoted parts of the file you commented on. Like anything you type in Claude Code, that prompt goes to Anthropic under your account and is kept in your session transcript. [Anthropic's privacy policy](https://www.anthropic.com/legal/privacy) covers it from there.
-- **To your own apps, only when you ask.** Pressing **Open in …** on a picture card opens that file in your computer's usual app, as double-clicking it would.
-- **Nothing over the network.** The plugin makes no network requests and downloads nothing, not even pictures a document links to on the web.
+- **Your comments, to Claude, only when you press Send** (or Enter after "Edit before sending"), with the quoted parts of the change you commented on.
+- **A one-line note, to Claude, only after you restore or keep a version**, such as "I restored "budget.xlsx" to the 2.14pm version". It holds only file names and times.
+- Both go as normal prompts in your own Claude Code session. Like anything you type in Claude Code, they go to Anthropic under your account and are kept in your session transcript. [Anthropic's privacy policy](https://www.anthropic.com/legal/privacy) covers them from there.
+- **To your own apps, only when you ask.** Pressing **Open in …** opens the file in your computer's usual app.
+- **Nothing over the network.** The plugin makes no network requests.
 
 ## Retention
-The plugin keeps no data from Claude or from your files beyond the session.
+Copies of documents: as set in `/redline settings` (20 versions or 7 days by default), and until you clear them or uninstall. Nothing else is kept beyond the session.
 
 ## Children
 The plugin is not intended for people under 18.
