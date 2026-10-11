@@ -153,7 +153,7 @@ export const latestOf = (fam: Family): Version | undefined => vault.index.versio
 export async function dataFolder($: EngineInterface): Promise<string> {
   const config = await $.env.get('CLAUDE_CONFIG_DIR')
   if (config) return `${config.replace(/\\/g, '/').replace(/\/$/, '')}/panda-redline`
-  const home = (await $.env.get('HOME')) ?? (await $.env.get('USERPROFILE')) ?? ''
+  const home = (await $.env.get('HOME')) || (await $.env.get('USERPROFILE')) || ''
   return `${home.replace(/\\/g, '/').replace(/\/$/, '')}/.claude/panda-redline`
 }
 
@@ -1461,7 +1461,13 @@ async function restore($: EngineInterface, versionId: string) {
     await setBanner($, 'That version has no content to put back.', 'error')
     return
   }
-  const target = currentPath(fam)
+  // A version goes back into its own file: for a copy Claude made, the original is where the earlier version lives.
+  const target = (await $.fs.exists(v.path)) || !(await $.fs.exists(currentPath(fam))) ? v.path : currentPath(fam)
+  if (idx.files[target]?.key === v.key) {
+    await setView($, 'changes')
+    await setBanner($, `${nameOf(target)} is already the ${clock(v.at)} version.`, 'info')
+    return
+  }
   try {
     const base64 = await getBlob($, v.key)
     if (base64 === null) throw new WriteError('That version is no longer kept, so it can’t be put back.')
@@ -1662,18 +1668,19 @@ async function afterTurn($: EngineInterface, status: Turn['status']) {
   await prune($, { versions: s.keepVersions, days: s.keepDays }).catch(() => undefined)
   if (result.turn) {
     const p = await read($, pane)
-    // What the person was looking at gives way to the new changes, unless they are in the middle of something.
-    if (!['restore', 'keep', 'clear', 'settings'].includes(p.view) && !p.isCommenting) await showTurn($, null)
+    // What the person was looking at gives way to the new changes, unless they are in the middle of something (then it's there when they're done).
+    if (['restore', 'keep', 'clear', 'settings'].includes(p.view) || p.isCommenting) await update($, pane, old => ({ ...old, turn: null, family: null, doc: 0, before: null, after: null }))
+    else await showTurn($, null)
     await update($, flash, old => ({ key: old.key + 1, turn: result.turn?.id ?? null, fresh: [] }))
-    if (s.notices) $.ui.log(`Panda Redline: ${await turnLine($, result.turn)}. /redline to see ${result.turn.changes.length === 1 ? 'it' : 'them'}`)
+    if (s.notices) $.ui.log(`${await turnLine($, result.turn)}. /redline to see ${result.turn.changes.length === 1 ? 'it' : 'them'}`)
     if (s.autoOpen) {
       const opened = await openPane($)
       if (!opened.isPlaced) $.ui.toast('🐼 Claude changed your documents. Type /redline to see what changed.')
     }
   }
   if (s.notices) {
-    for (const ask of result.asks) $.ui.log(`Panda Redline: is ${nameOf(ask.path)} a new version of ${nameOf(ask.guess.path)}? /redline to answer`)
-    for (const skip of result.skipped.slice(0, 3)) $.ui.log(`Panda Redline: couldn’t keep a copy of ${nameOf(skip.path)}: ${skip.reason}`)
+    for (const ask of result.asks) $.ui.log(`Is ${nameOf(ask.path)} a new version of ${nameOf(ask.guess.path)}? /redline to answer`)
+    for (const skip of result.skipped.slice(0, 3)) $.ui.log(`Couldn’t keep a copy of ${nameOf(skip.path)}: ${skip.reason}`)
   }
   await redraw($)
 }
@@ -1800,7 +1807,10 @@ async function examples($: EngineInterface, base: string): Promise<string> {
     const known = vault.index.files[`${folder}/${name}`]
     const fam = known ? vault.index.families[known.family] : undefined
     const v = fam ? latestOf(fam) : undefined
-    if (v) v.at = earlier
+    if (v) {
+      v.at = earlier
+      v.by = 'first'
+    }
   }
   const running = vault.index.running as { id: string; start: number } | null
   if (running) running.start = earlier + 1
@@ -1972,8 +1982,9 @@ export const register: Register = on => {
           }
         }
         await showFamily($, fam.id)
-      } else if ((await read($, pane)).view !== 'changes') {
-        await setView($, 'changes')
+      } else {
+        // Plain /redline: the latest changes.
+        await showTurn($, null)
       }
       // Typed by the person: the pane takes the keys, so n and p step through the changes at once (Esc gives them back).
       const opened = await openPane($, isPerson)
@@ -1990,7 +2001,7 @@ export const register: Register = on => {
     if (waiting.length === 0 || !isPerson || e.text.trimStart().startsWith('/') || e.text.includes(PROMPT_HEADER)) return next(e)
     await update($, notes, () => [])
     await $.store.set('notes', [])
-    $.ui.log(`Panda Redline told Claude: ${waiting.join(' ')}`)
+    $.ui.log(`Told Claude: ${waiting.join(' ')}`)
     return next({ ...e, context: [...(e.context ?? []), `Panda Redline note: ${waiting.join(' ')}`] })
   }).catch(($, e, next) => next(e))
 
@@ -2614,7 +2625,7 @@ function actionsRow($: EngineInterface, ctx: Ctx, c: Compared | null): RenderNod
   const app = APPS[extOf(after.path)]
   return (
     <Box flexDirection="row" columnGap={2}>
-      {before && before.key !== null ? (
+      {before && before.key !== null && vault.index.files[before.path]?.key !== before.key ? (
         <Button
           key="restore"
           label={narrow ? `↺ ${clock(before.at)}` : after.key === null ? `↺ Bring back ${nameOf(before.path)}` : `↺ Restore ${clock(before.at)} version`}
@@ -2740,7 +2751,7 @@ function restoreView($: EngineInterface, ctx: Ctx): RenderNode {
   return (
     <Box flexDirection="column" {...(ctx.isCompact ? {} : { borderStyle: 'round', borderColor: pal.warning, paddingX: 1 })}>
       <Text wrap="wrap">
-        Put <Text bold>{nameOf(currentPath(fam))}</Text> back to the <Text bold>{clock(v.at)}</Text> version? What’s there now is saved first, so you can undo this.
+        Put <Text bold>{nameOf(v.path)}</Text> back to the <Text bold>{clock(v.at)}</Text> version? What’s there now is saved first, so you can undo this.
       </Text>
       <Box flexDirection="row" columnGap={2}>
         <Button key="restore-yes" label="↺ Restore" variant="primary" onPress={() => void restore($, v.id)} />
@@ -2790,7 +2801,7 @@ function keepView($: EngineInterface, ctx: Ctx): RenderNode {
           <Text color={pal.accent} bold>  → </Text>
           {nameOf(m.from)}
           {m.from === plan.home ? <Text color={pal.dim}> (as it is now)</Text> : ''}
-          <Text color={pal.subtle}> moves to {shortPath(m.to, session.folder)}</Text>
+          <Text color={pal.subtle}> moves to Older versions/{nameOf(m.to)}</Text>
         </Text>
       ))}
       <Text color={pal.dim} wrap="wrap">

@@ -5,7 +5,7 @@ import { expect, test } from 'claude-code/testing'
 
 import { Disk, PANE, claudeTurn, mount, start } from './disk'
 import type { Engine, On } from './disk'
-import { base64, docx, xlsx } from './office'
+import { base64, docx, pdf, xlsx } from './office'
 
 const budget = (rows: (string | number)[][], extra: { name: string; rows: (string | number)[][] }[] = []) => xlsx([{ name: 'Budget', rows: [['Item', 'Q1', 'Q2'], ...rows] }, ...extra])
 const BUDGET = budget([['Rent', 12000, 12000], ['Salaries', 48000, 48000], ['Marketing', 8000, 9500]], [{ name: 'Notes', rows: [['Note'], ['Review in Q2']] }])
@@ -48,7 +48,7 @@ test('after Claude’s turn: a notice Claude never sees, the before and after, t
   const logs: string[] = []
   const disk = await setUp($, on, { '/w/plan.md': '# Plan\n\nBeta opens on 3 November for 200 customers.\n\nFull launch in December.\n' }, { onLog: t => logs.push(t) })
   await claudeTurn($, () => disk.put('/w/plan.md', '# Plan\n\nBeta opens on 10 November for 500 customers.\n\nFull launch in December.\n\nPress release on launch day.\n'))
-  expect(logs).toContain('Panda Redline: plan.md has 2 changes. /redline to see it')
+  expect(logs).toContain('plan.md has 2 changes. /redline to see it')
   const ui = await draw($)
   const text = await shown(ui)
   expect(text).toContain('Before')
@@ -203,6 +203,7 @@ test('keep this version: shows exactly what will move, then puts it in the budge
   const plan = await shown(ui)
   expect(plan).toContain('budget.xlsx becomes the')
   expect(plan).toContain('budget.xlsx (as it is now) moves to Older versions/budget.xlsx')
+  expect(plan).not.toContain('/w/')
   expect(plan).toContain('budget_v2.xlsx moves to Older versions/budget_v2.xlsx')
   expect(plan).toContain('Nothing is deleted')
   await ui.press({ key: 'keep-yes' })
@@ -315,4 +316,56 @@ test('small, medium and large panes all draw, inline and side by side, with noth
     }
     await ui.unmount()
   }
+})
+
+test('PDF, HTML, Confluence and text files each show their changes, read as documents', async ($, on) => {
+  const adf = (text: string) => JSON.stringify({ type: 'doc', version: 1, content: [{ type: 'heading', attrs: { level: 1 }, content: [{ type: 'text', text: 'Update' }] }, { type: 'paragraph', content: [{ type: 'text', text }] }] })
+  const cases: [string, string | Uint8Array, string | Uint8Array, string, string][] = [
+    ['/w/letter.pdf', pdf([['Dear customer,', 'Your rate is 25 cents.']]), pdf([['Dear customer,', 'Your rate is 22 cents.']]), '25', '22'],
+    ['/w/page.html', '<h1>Prices</h1><p>From <b>$40</b> a month.</p>', '<h1>Prices</h1><p>From <b>$35</b> a month.</p>', '$40', '$35'],
+    ['/w/update.adf', adf('Go-live is on Monday.'), adf('Go-live is on Friday.'), 'Monday', 'Friday'],
+    ['/w/notes.txt', 'alpha\nbeta\ngamma\n', 'alpha\ndelta\ngamma\n', 'beta', 'delta'],
+  ]
+  const disk = await setUp($, on, Object.fromEntries(cases.map(c => [c[0], c[1]])))
+  await claudeTurn($, () => {
+    for (const [path, , after] of cases) disk.put(path, after)
+  })
+  const ui = await draw($)
+  const seen: string[] = []
+  for (let k = 0; k < cases.length; k += 1) {
+    const name = (await ui.findAll({ type: 'Text', in: 'docs' })).map(t => t.text).join(' ')
+    const one = cases.find(c => name.includes(c[0].slice(3)))!
+    seen.push(one[0])
+    const texts = await ui.findAll({ type: 'Text', in: 'changes' })
+    expect(texts.some(t => t.props.strikethrough === true && t.text.includes(one[3])) ? one[0] : `${one[0]}: ${one[3]} not struck`).toBe(one[0])
+    expect(texts.some(t => t.props.underline === true && t.text.includes(one[4])) ? one[0] : `${one[0]}: ${one[4]} not underlined`).toBe(one[0])
+    // Formatted, not markup.
+    expect(texts.some(t => /<h1>|"type":|<p>/.test(t.text))).toBe(false)
+    await ui.press({ key: 'k-doc' })
+  }
+  expect(new Set(seen).size).toBe(4)
+})
+
+test('Windows: restore by certutil and keep by PowerShell, paths only in arguments and the environment, never in a command line', async ($, on) => {
+  const disk = new Disk()
+  disk.tools = new Set(['certutil', 'powershell.exe'])
+  disk.put('C:/Users/sam/Work/budget.xlsx', BUDGET)
+  mount(on, disk, { env: { HOME: '', USERPROFILE: 'C:\\Users\\sam' } })
+  await start($, 'C:\\Users\\sam\\Work')
+  await claudeTurn($, () => disk.put('C:/Users/sam/Work/budget_v2.xlsx', BUDGET_V2))
+  const ui = await draw($)
+  await ui.press({ key: 'keep' })
+  await new Promise(resolve => setTimeout(resolve, 50))
+  await ui.press({ key: 'keep-yes' })
+  expect(base64(disk.files.get('C:/Users/sam/Work/budget.xlsx')!.bytes)).toBe(base64(BUDGET_V2))
+  expect(disk.files.has('C:/Users/sam/Work/Older versions/budget_v2.xlsx')).toBe(true)
+  const moves = disk.runs.filter(r => r[0] === 'powershell.exe')
+  expect(moves.length).toBe(2)
+  // The command text is the same every time: the paths are never part of it.
+  expect(new Set(moves.map(r => r.join(' '))).size).toBe(1)
+  expect(moves[0]!.join(' ')).not.toContain('budget')
+  const decode = disk.runs.find(r => r[0] === 'certutil')!
+  expect(decode[decode.length - 1]).toBe('C:\\Users\\sam\\Work\\budget.xlsx')
+  // Versions live in the Claude folder, not the project.
+  expect([...disk.files.keys()].some(p => p.startsWith('C:/Users/sam/.claude/panda-redline/projects/'))).toBe(true)
 })

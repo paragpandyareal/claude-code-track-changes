@@ -143,7 +143,7 @@ test('an unsure match is asked once; the answer joins the family and is remember
   expect(idx.asks).toHaveLength(1)
   expect(idx.asks[0]!.path).toBe('/w/board pack.xlsx')
   expect(idx.asks[0]!.guess.path).toBe('/w/budget.xlsx')
-  expect(logs.some(l => l.includes('is board pack.xlsx a new version of budget.xlsx?'))).toBe(true)
+  expect(logs.some(l => l.includes('Is board pack.xlsx a new version of budget.xlsx?'))).toBe(true)
   // Until answered, it is a document of its own.
   expect(idx.files['/w/board pack.xlsx']?.family).not.toBe(idx.files['/w/budget.xlsx']?.family)
 })
@@ -221,7 +221,7 @@ test('a file held open by another app is skipped, said plainly, and caught next 
   })
   let idx = indexOf(disk) as Index
   expect(idx.skipped[0]?.reason).toContain('open in another app such as Excel')
-  expect(logs.some(l => l.includes('couldn’t keep a copy of budget.xlsx'))).toBe(true)
+  expect(logs.some(l => l.includes('Couldn’t keep a copy of budget.xlsx'))).toBe(true)
   disk.locked.clear()
   await claudeTurn($, () => undefined)
   idx = indexOf(disk) as Index

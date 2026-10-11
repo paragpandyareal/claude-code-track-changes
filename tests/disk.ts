@@ -74,6 +74,9 @@ export class Disk {
   }
 }
 
+/** On Linux the test kit sees "C:/x" as relative and puts its own folder first: the Windows path is what follows. */
+const fix = (path: string) => path.replace(/^.*?(?=[A-Za-z]:\/)/, '')
+
 /** The mocks Panda Redline needs, all answered from the disk. Starts the session in /w. */
 export function mount(on: On, disk: Disk, options: { store?: Record<string, unknown>; env?: Record<string, string>; onLog?: (text: string) => void; onSubmit?: (text: string, context: readonly string[]) => void; box?: string } = {}) {
   mock.store(on, options.store ?? {})
@@ -97,9 +100,9 @@ export function mount(on: On, disk: Disk, options: { store?: Record<string, unkn
     options.onSubmit?.(e.text, (e as { context?: readonly string[] }).context ?? [])
     return { text: e.text }
   })
-  on('fs.exists', (_, e) => ({ value: disk.files.has(e.path) || disk.isDir(e.path) }))
+  on('fs.exists', (_, e) => ({ value: disk.files.has(fix(e.path)) || disk.isDir(fix(e.path)) }))
   on('fs.read', (_, e) => {
-    const path = (e as { path: string }).path
+    const path = fix((e as { path: string }).path)
     const f = disk.files.get(path)
     if (!f) throw new Error(`ENOENT: no such file ${path}`)
     if (disk.locked.has(path)) throw new Error(`EBUSY: resource busy or locked ${path}`)
@@ -108,16 +111,16 @@ export function mount(on: On, disk: Disk, options: { store?: Record<string, unkn
   })
   on('fs.write', (_, e) => {
     const { path, text } = e as { path: string; text: string }
-    disk.put(path, text)
+    disk.put(fix(path), text)
     return { value: undefined }
   })
   on('fs.list', (_, e) => {
-    const path = ((e as { path?: string }).path ?? '/w').replace(/\/$/, '')
+    const path = fix((e as { path?: string }).path ?? '/w').replace(/\/$/, '')
     if (!disk.isDir(path)) throw new Error(`ENOENT: ${path}`)
     return { value: disk.list(path) }
   })
   on('fs.stat', (_, e) => {
-    const path = (e as { path: string }).path
+    const path = fix((e as { path: string }).path)
     const f = disk.files.get(path)
     if (f) return { value: { kind: 'file', size: f.bytes.length, mtimeMs: f.mtime, isLink: disk.links.has(path), realPath: path } }
     if (disk.isDir(path)) return { value: { kind: 'dir', size: 0, mtimeMs: 0, isLink: disk.links.has(path), realPath: disk.links.has(path) ? '/elsewhere' : path } }
@@ -132,6 +135,21 @@ export function mount(on: On, disk: Disk, options: { store?: Record<string, unkn
       const to = argv[argv.indexOf('-out') + 1]!
       if (disk.locked.has(to)) return { value: { exitCode: 1, stdout: '', stderr: `${to}: Permission denied` } }
       disk.put(to, unbase64(disk.text(from) ?? ''))
+      return { value: { exitCode: 0, stdout: '', stderr: '' } }
+    }
+    const slashes = (path: string) => path.replace(/\\/g, '/')
+    if (argv[0] === 'certutil') {
+      const [from, to] = argv.slice(-2).map(slashes) as [string, string]
+      if (disk.locked.has(to)) return { value: { exitCode: 1, stdout: 'The process cannot access the file because it is being used by another process.', stderr: '' } }
+      disk.put(to, unbase64(disk.text(from) ?? ''))
+      return { value: { exitCode: 0, stdout: '', stderr: '' } }
+    }
+    if (argv[0] === 'powershell.exe') {
+      const env = (e as { env?: Record<string, string>; init?: { env?: Record<string, string> } }).env ?? (e as { init?: { env?: Record<string, string> } }).init?.env ?? {}
+      const from = slashes(env.PANDA_REDLINE_FROM ?? '')
+      const to = slashes(env.PANDA_REDLINE_TO ?? '')
+      if (disk.locked.has(from)) return { value: { exitCode: 1, stdout: '', stderr: 'The process cannot access the file because it is being used by another process.' } }
+      disk.move(from, to)
       return { value: { exitCode: 0, stdout: '', stderr: '' } }
     }
     if (argv[0] === 'mkdir') return { value: { exitCode: 0, stdout: '', stderr: '' } }
