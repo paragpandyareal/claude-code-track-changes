@@ -1531,7 +1531,7 @@ async function keepVersion($: EngineInterface, plan: KeepPlan) {
     const others = moves.filter(m => m.from !== home).map(m => noteName(m.from, session.folder))
     const told = await tell(
       $,
-      `I kept the ${clock(keep.at)} version of ${noteName(home, session.folder)}${keep.path !== home ? ` (from ${noteName(keep.path, session.folder)})` : ''}${others.length > 0 ? ` and moved ${others.join(', ')} into the "Older versions" folder` : ''}. Use ${noteName(home, session.folder)} from now on, and re-read it before editing it.`,
+      `I kept the ${clock(keep.at)} version of ${noteName(home, session.folder)}${keep.path !== home ? ` (from ${noteName(keep.path, session.folder)})` : ''}${others.length > 0 ? ` and moved ${others.join(', ')}${moves.some(m => m.from === home) ? ', and the earlier copy of it,' : ''} into the "Older versions" folder` : ''}. Use ${noteName(home, session.folder)} from now on, and re-read it before editing it.`,
     )
     forgetDrawings()
     await showFamily($, fam.id, null, null, 'history')
@@ -2768,8 +2768,8 @@ function restoreView($: EngineInterface, ctx: Ctx): RenderNode {
         Put <Text bold>{nameOf(v.path)}</Text> back to the <Text bold>{clock(v.at)}</Text> version? What’s there now is saved first, so you can undo this.
       </Text>
       <Box flexDirection="row" columnGap={2}>
-        <Button key="restore-yes" label="↺ Restore" variant="primary" onPress={() => void restore($, v.id)} />
-        <Button key="restore-no" label="Cancel" plain onPress={() => void setView($, 'changes')} />
+        <Button key="restore-yes" label="↺ Restore" hotkey="y" variant="primary" onPress={() => void restore($, v.id)} />
+        <Button key="restore-no" label="Cancel" hotkey="n" plain onPress={() => void setView($, 'changes')} />
       </Box>
     </Box>
   )
@@ -2825,6 +2825,7 @@ function keepView($: EngineInterface, ctx: Ctx): RenderNode {
         <Button
           key="keep-yes"
           label="✓ Keep it"
+          hotkey="y"
           variant="primary"
           onPress={() => {
             plans.delete(v.id)
@@ -2834,6 +2835,7 @@ function keepView($: EngineInterface, ctx: Ctx): RenderNode {
         <Button
           key="keep-no"
           label="Cancel"
+          hotkey="n"
           plain
           onPress={() => {
             plans.delete(v.id)
@@ -2920,8 +2922,8 @@ function clearView($: EngineInterface, ctx: Ctx): RenderNode {
         Forget every saved version of the documents in this folder? Your documents themselves aren’t touched; Panda Redline starts again from them as they are now.
       </Text>
       <Box flexDirection="row" columnGap={2}>
-        <Button key="clear-yes" label="Clear versions" variant="primary" onPress={() => void clearAll($)} />
-        <Button key="clear-no" label="Cancel" plain onPress={() => void setView($, 'settings')} />
+        <Button key="clear-yes" label="Clear versions" hotkey="y" variant="primary" onPress={() => void clearAll($)} />
+        <Button key="clear-no" label="Cancel" hotkey="n" plain onPress={() => void setView($, 'settings')} />
       </Box>
     </Box>
   )
