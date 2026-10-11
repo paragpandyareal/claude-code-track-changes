@@ -1,0 +1,31 @@
+{
+  "name": "panda-redline",
+  "displayName": "Panda Redline",
+  "version": "0.1.0",
+  "description": "Track changes for everything Claude edits. See exactly what Claude changed in your Excel, Word, PDF, Markdown, Confluence, HTML, CSV and text files, in red and green, and put any earlier version back.",
+  "author": {
+    "name": "Parag Pandya",
+    "url": "https://github.com/paragpandyareal"
+  },
+  "homepage": "https://github.com/paragpandyareal/panda-redline",
+  "repository": "https://github.com/paragpandyareal/panda-redline",
+  "license": "MIT",
+  "keywords": [
+    "track-changes",
+    "versions",
+    "changes",
+    "excel",
+    "word",
+    "pdf",
+    "markdown",
+    "confluence",
+    "csv",
+    "pane",
+    "mod"
+  ],
+  "types": "./types/index.d.ts",
+  "privacyPolicyUrl": "https://github.com/paragpandyareal/panda-redline/blob/main/PRIVACY.md",
+  "documentationUrl": "https://github.com/paragpandyareal/panda-redline#readme",
+  "supportUrl": "https://github.com/paragpandyareal/panda-redline/issues",
+  "termsOfServiceUrl": "https://github.com/paragpandyareal/panda-redline/blob/main/LICENSE"
+}
