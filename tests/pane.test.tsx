@@ -1,5 +1,5 @@
 // Copyright (c) 2026 Parag Pandya. MIT License, see LICENSE.
-// Panda Redline: https://github.com/paragpandyareal/panda-redline
+// Claude Code Track Changes: https://github.com/paragpandyareal/claude-code-track-changes
 // Based on Lazy Panda Panel: https://github.com/paragpandyareal/lazy-panda-panel
 import { expect, test } from 'claude-code/testing'
 
@@ -20,7 +20,7 @@ async function setUp($: Engine, on: On, files: Record<string, string | Uint8Arra
 }
 
 const draw = ($: Engine, columns = 100, rows = 34) =>
-  $.ui.mount({ plugin: 'panda-redline', surface: 'terminal', ...PANE, props: { ...PANE.props, bodyColumns: columns, scroll: { offset: 0, bodyRows: rows } } })
+  $.ui.mount({ plugin: 'track-changes', surface: 'terminal', ...PANE, props: { ...PANE.props, bodyColumns: columns, scroll: { offset: 0, bodyRows: rows } } })
 
 /** All the text a drawing shows, in the plugin's tree and in its views. */
 async function shown(ui: Awaited<ReturnType<typeof draw>>): Promise<string> {
@@ -44,15 +44,20 @@ test('the empty pane says, in plain words, what will happen', async ($, on) => {
   expect(text).toContain('/redline examples')
 })
 
-test('after Claude’s turn: a notice Claude never sees, the before and after, the summary, and the change marked', async ($, on) => {
+test('after Claude’s turn: a notice Claude never sees, the count and times in one line, the summary under more, and the change marked', async ($, on) => {
   const logs: string[] = []
   const disk = await setUp($, on, { '/w/plan.md': '# Plan\n\nBeta opens on 3 November for 200 customers.\n\nFull launch in December.\n' }, { onLog: t => logs.push(t) })
   await claudeTurn($, () => disk.put('/w/plan.md', '# Plan\n\nBeta opens on 10 November for 500 customers.\n\nFull launch in December.\n\nPress release on launch day.\n'))
   expect(logs).toContain('plan.md has 2 changes. /redline to see it')
   const ui = await draw($)
+  const quiet = await shown(ui)
+  expect(quiet).toMatch(/2 changes · \S+ → \S+ · by Claude/)
+  // The summary, the other tools and the legend wait under m: more.
+  expect(quiet).not.toContain('1 paragraph changed')
+  expect(quiet).not.toContain('removed  + added')
+  await ui.press({ key: 'more' })
   const text = await shown(ui)
-  expect(text).toContain('Before')
-  expect(text).toContain('by Claude')
+  expect(text).toContain('Compare')
   expect(text).toContain('2 changes · 1 paragraph changed · 1 paragraph added')
   const texts = await ui.findAll({ type: 'Text', in: 'changes' })
   expect(texts.some(t => t.props.strikethrough === true && t.text.includes('200'))).toBe(true)
@@ -76,9 +81,11 @@ test('Excel: a new file is shown as the budget’s next version, sheets and cell
   const ui = await draw($, 110)
   const text = await shown(ui)
   expect(text).toContain('budget.xlsx → budget_v2.xlsx')
-  expect(text).toContain('1 row added')
-  expect(text).toContain('1 sheet removed')
   expect(text).toContain('− Notes')
+  await ui.press({ key: 'more' })
+  const more = await shown(ui)
+  expect(more).toContain('1 row added')
+  expect(more).toContain('1 sheet removed')
   await ui.post({ type: 'key', key: 'n' }, { in: 'changes' })
   expect(await shown(ui)).toMatch(/1 of \d/)
   await ui.post({ type: 'key', key: 'n' }, { in: 'changes' })
@@ -140,7 +147,7 @@ test('restore: one short question, the file put back exactly, the current versio
   // The next thing the person sends carries the note beside it; their words are unchanged.
   await $.prompt.submit({ text: 'Now add a risks section', wait: false, origin: { kind: 'composer' } } as never)
   expect(submitted).toEqual(['Now add a risks section'])
-  expect(contexts[0]?.[0]).toMatch(/^Panda Redline note: I restored "plan\.md" to the .* version, from before your last change\. Re-read it before editing it again\.$/)
+  expect(contexts[0]?.[0]).toMatch(/^Claude Code Track Changes note: I restored "plan\.md" to the .* version, from before your last change\. Re-read it before editing it again\.$/)
   // Only once.
   await $.prompt.submit({ text: 'And a summary', wait: false, origin: { kind: 'composer' } } as never)
   expect(contexts[1]).toEqual([])
@@ -166,7 +173,7 @@ test('told straight away when the setting says so', async ($, on) => {
   await ui.press({ key: 'restore' })
   await ui.press({ key: 'restore-yes' })
   expect(submitted).toHaveLength(1)
-  expect(submitted[0]).toMatch(/^Panda Redline note: I restored "plan\.md" to the .* version, from before your last change\. Re-read it before editing it again\.$/)
+  expect(submitted[0]).toMatch(/^Claude Code Track Changes note: I restored "plan\.md" to the .* version, from before your last change\. Re-read it before editing it again\.$/)
 })
 
 test('a Word file is restored byte for byte by the computer’s own tool, never through a shell', async ($, on) => {
@@ -226,7 +233,7 @@ test('comment on a change and send: the old and new text are quoted, fenced as d
   await ui.press({ key: 'send' })
   expect(submitted).toHaveLength(1)
   const prompt = submitted[0]!
-  expect(prompt).toMatch(/^Panda Redline feedback: these are comments on changes you made\./)
+  expect(prompt).toMatch(/^Claude Code Track Changes feedback: these are comments on changes you made\./)
   const fence = /<(file-excerpt-[0-9a-f]{8})>/.exec(prompt)?.[1]
   expect(fence).toBeDefined()
   expect(prompt).toContain('Before:\n   > Beta opens on 3 November.')
@@ -287,8 +294,9 @@ test('/redline examples writes samples, one saved as a new file, and shows Claud
   await start($)
   const ran = await $.command.run({ command: 'redline', args: 'examples' })
   expect(String((ran as { text?: unknown }).text)).toContain('a budget saved as a new file (budget_v2.xlsx)')
-  for (const name of ['budget.xlsx', 'budget_v2.xlsx', 'report.docx', 'plan.md', 'meter-readings.csv']) expect(disk.files.has(`/w/panda-redline-examples/${name}`)).toBe(true)
+  for (const name of ['budget.xlsx', 'budget_v2.xlsx', 'report.docx', 'plan.md', 'meter-readings.csv']) expect(disk.files.has(`/w/track-changes-examples/${name}`)).toBe(true)
   const ui = await draw($)
+  await ui.press({ key: 'more' })
   const text = await shown(ui)
   expect(text).toContain('by Claude (example)')
   expect(text).toContain('1/4')
@@ -341,6 +349,7 @@ test('PDF, HTML, Confluence and text files each show their changes, read as docu
     expect(texts.some(t => t.props.underline === true && t.text.includes(one[4])) ? one[0] : `${one[0]}: ${one[4]} not underlined`).toBe(one[0])
     // Formatted, not markup.
     expect(texts.some(t => /<h1>|"type":|<p>/.test(t.text))).toBe(false)
+    if (k === 0) await ui.press({ key: 'more' })
     await ui.press({ key: 'k-doc' })
   }
   expect(new Set(seen).size).toBe(4)
@@ -367,5 +376,5 @@ test('Windows: restore by certutil and keep by PowerShell, paths only in argumen
   const decode = disk.runs.find(r => r[0] === 'certutil')!
   expect(decode[decode.length - 1]).toBe('C:\\Users\\sam\\Work\\budget.xlsx')
   // Versions live in the Claude folder, not the project.
-  expect([...disk.files.keys()].some(p => p.startsWith('C:/Users/sam/.claude/panda-redline/projects/'))).toBe(true)
+  expect([...disk.files.keys()].some(p => p.startsWith('C:/Users/sam/.claude/track-changes/projects/'))).toBe(true)
 })

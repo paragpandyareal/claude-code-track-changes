@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.0 (2026-10-12)
+
+- **New name:** Panda Redline is now **Claude Code Track Changes** (`track-changes`). The command is still `/redline`. Saved versions now live in `~/.claude/track-changes`.
+- **A quieter pane:** one header line (the file, how many changes, when, by whom); colour only on what changed; the change you're on and one line of keys at the bottom (`n` `p` `c` `m`, `r` restore, `k` keep).
+- **`m: more`** holds the rest: the summary, side by side, history, the list, the next document, formulas, versions compared, settings and the colour key.
+- **Spreadsheets inline** show a changed cell's new value; its old → new value is under the sheet. Side by side still shows both.
+- Sheet tabs only when more than one sheet changed; the "is this a new version" question is one line; **b** goes back from history, keep and version pickers.
+
 ## 0.1.0 (2026-10-11)
 
 First version.

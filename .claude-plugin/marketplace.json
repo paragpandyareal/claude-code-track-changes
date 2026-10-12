@@ -1,5 +1,5 @@
 {
-  "name": "panda-redline",
+  "name": "claude-code-track-changes",
   "owner": {
     "name": "Parag Pandya",
     "url": "https://github.com/paragpandyareal"
@@ -9,10 +9,10 @@
   },
   "plugins": [
     {
-      "name": "panda-redline",
+      "name": "track-changes",
       "source": "./",
       "description": "Track changes for everything Claude edits. See exactly what Claude changed in your Excel, Word, PDF, Markdown, Confluence, HTML, CSV and text files, in red and green, and put any earlier version back.",
-      "version": "0.1.0"
+      "version": "0.2.0"
     }
   ]
 }

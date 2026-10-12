@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # Copyright (c) 2026 Parag Pandya. MIT License, see LICENSE.
-# Panda Redline: https://github.com/paragpandyareal/panda-redline
+# Claude Code Track Changes: https://github.com/paragpandyareal/claude-code-track-changes
 # Based on Lazy Panda Panel: https://github.com/paragpandyareal/lazy-panda-panel
-"""Hands one document's bytes to Panda Redline.
+"""Hands one document's bytes to Claude Code Track Changes.
 
 Claude Code lets a mod read files of up to 4 MB itself. For a larger
 document, the mod runs this script, which reads the file and prints it as

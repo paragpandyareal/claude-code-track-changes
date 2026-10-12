@@ -1,6 +1,6 @@
 # Privacy policy
 
-_Panda Redline, a Claude Code plugin by Parag Pandya. Last updated 11 October 2026._
+_Claude Code Track Changes, a Claude Code plugin by Parag Pandya. Last updated 11 October 2026._
 
 **In short: the plugin collects nothing and sends nothing to its author or to anyone else. It keeps copies of your documents on your own computer, so it can show what changed.**
 
@@ -8,7 +8,7 @@ _Panda Redline, a Claude Code plugin by Parag Pandya. Last updated 11 October 20
 The documents in the folder you run Claude Code in (Excel, Word, PDF, Markdown, Confluence, HTML, CSV and text files), when Claude's turn starts and ends, so it can tell what Claude changed. Those documents can contain personal information. They're read on your own computer. It also reads a few environment variables that say where Claude Code's settings folder is and whether your computer has a desktop (for example `HOME`), never anything personal.
 
 ## What it stores
-- **Copies of your tracked documents**, one per version, in Panda Redline's own folder inside Claude Code's settings folder on your computer (`~/.claude/panda-redline/`, or `%USERPROFILE%\.claude\panda-redline\` on Windows). Each content is stored once. Copies are let go after the last 20 versions of a document or 7 days, whichever comes first; you can change both, and clear everything with `/redline space`.
+- **Copies of your tracked documents**, one per version, in Claude Code Track Changes's own folder inside Claude Code's settings folder on your computer (`~/.claude/track-changes/`, or `%USERPROFILE%\.claude\track-changes\` on Windows). Each content is stored once. Copies are let go after the last 20 versions of a document or 7 days, whichever comes first; you can change both, and clear everything with `/redline space`.
 - **A record of the versions**: file names, times, who made each version (Claude or you), and your answers to "is this a new version of that?".
 - **Three small settings** in Claude Code's own plugin store: your settings, a note waiting to go to Claude, and whether you've seen the welcome message.
 
@@ -29,4 +29,4 @@ Copies of documents: as set in `/redline settings` (20 versions or 7 days by def
 The plugin is not intended for people under 18.
 
 ## Contact
-Questions about privacy: open an issue at https://github.com/paragpandyareal/panda-redline/issues. Report security problems privately as described in [SECURITY.md](SECURITY.md).
+Questions about privacy: open an issue at https://github.com/paragpandyareal/claude-code-track-changes/issues. Report security problems privately as described in [SECURITY.md](SECURITY.md).

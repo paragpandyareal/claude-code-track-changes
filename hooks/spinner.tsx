@@ -1,5 +1,5 @@
 // Copyright (c) 2026 Parag Pandya. MIT License, see LICENSE.
-// Panda Redline: https://github.com/paragpandyareal/panda-redline
+// Claude Code Track Changes: https://github.com/paragpandyareal/claude-code-track-changes
 // Based on Lazy Panda Panel: https://github.com/paragpandyareal/lazy-panda-panel
 
 import type { ClientModule } from 'claude-code'

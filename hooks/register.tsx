@@ -1,5 +1,5 @@
 // Copyright (c) 2026 Parag Pandya. MIT License, see LICENSE.
-// Panda Redline: https://github.com/paragpandyareal/panda-redline
+// Claude Code Track Changes: https://github.com/paragpandyareal/claude-code-track-changes
 // Based on Lazy Panda Panel: https://github.com/paragpandyareal/lazy-panda-panel
 
 import { atom, read, update } from 'claude-code'
@@ -22,7 +22,7 @@ import type { DRow, Laid } from './layout'
 import { markdownRows } from './md'
 import { feedbackPrompt, isAbsolutePath, normalizePath, noteName, PROMPT_HEADER, shortPath } from './model'
 import { makeDocx, makeXlsx } from './officegen'
-import { BADGES, PALETTE } from './palette'
+import { PALETTE } from './palette'
 import { pandaRows } from './panda'
 import { readPdf } from './pdf'
 import type { SpinnerProps } from './spinner'
@@ -88,7 +88,7 @@ export type Turn = {
   changes: TurnChange[]
 }
 
-/** A new file Panda Redline isn't sure about: asked once in the pane. */
+/** A new file Claude Code Track Changes isn't sure about: asked once in the pane. */
 export type Ask = { version: string; path: string; guess: { family: string; path: string }; others: { family: string; path: string }[] }
 
 /** A file on disk as last noted. */
@@ -137,7 +137,7 @@ export const isHomeOrRoot = (dir: string) =>
 
 /** The session's tracking state, set at session.start. */
 export const vault = {
-  /** The data folder: <Claude config>/panda-redline. */
+  /** The data folder: <Claude config>/track-changes. */
   data: '',
   /** This project's folder in it. */
   project: '',
@@ -152,9 +152,9 @@ export const latestOf = (fam: Family): Version | undefined => vault.index.versio
 
 export async function dataFolder($: EngineInterface): Promise<string> {
   const config = await $.env.get('CLAUDE_CONFIG_DIR')
-  if (config) return `${config.replace(/\\/g, '/').replace(/\/$/, '')}/panda-redline`
+  if (config) return `${config.replace(/\\/g, '/').replace(/\/$/, '')}/track-changes`
   const home = (await $.env.get('HOME')) || (await $.env.get('USERPROFILE')) || ''
-  return `${home.replace(/\\/g, '/').replace(/\/$/, '')}/.claude/panda-redline`
+  return `${home.replace(/\\/g, '/').replace(/\/$/, '')}/.claude/track-changes`
 }
 
 export async function openVault($: EngineInterface, folder: string) {
@@ -358,7 +358,7 @@ export class WriteError extends Error {}
 /** Why a write failed, in words a person can act on. */
 function why(text: string, name: string): string {
   if (/being used|EBUSY|locked|sharing violation|process cannot access/i.test(text)) return `${name} is open in another app (maybe Excel or Word). Close it there and try again.`
-  if (/denied|EACCES|EPERM|read-only/i.test(text)) return `Panda Redline isn't allowed to change ${name}. Check that it isn't read-only.`
+  if (/denied|EACCES|EPERM|read-only/i.test(text)) return `Claude Code Track Changes isn't allowed to change ${name}. Check that it isn't read-only.`
   return `${name} couldn't be written: ${text.replace(/\s+/g, ' ').slice(0, 160)}`
 }
 
@@ -466,9 +466,9 @@ export async function moveFile($: EngineInterface, from: string, to: string) {
           '-NoProfile',
           '-NonInteractive',
           '-Command',
-          '$ErrorActionPreference = "Stop"; New-Item -ItemType Directory -Force -Path (Split-Path -LiteralPath $env:PANDA_REDLINE_TO) | Out-Null; Move-Item -LiteralPath $env:PANDA_REDLINE_FROM -Destination $env:PANDA_REDLINE_TO',
+          '$ErrorActionPreference = "Stop"; New-Item -ItemType Directory -Force -Path (Split-Path -LiteralPath $env:TRACK_CHANGES_TO) | Out-Null; Move-Item -LiteralPath $env:TRACK_CHANGES_FROM -Destination $env:TRACK_CHANGES_TO',
         ],
-        { env: { PANDA_REDLINE_FROM: native(from), PANDA_REDLINE_TO: native(to) }, timeoutMs: 60_000 },
+        { env: { TRACK_CHANGES_FROM: native(from), TRACK_CHANGES_TO: native(to) }, timeoutMs: 60_000 },
       )
     } else {
       const folder = to.slice(0, to.lastIndexOf('/'))
@@ -499,7 +499,7 @@ export async function freeName($: EngineInterface, folder: string, name: string)
 
 /**
  * A stored version, read back as a document: the same readers Lazy Panda
- * Panel uses, for every kind of file Panda Redline tracks. Read once per
+ * Panel uses, for every kind of file Claude Code Track Changes tracks. Read once per
  * content, then kept for a while.
  */
 
@@ -529,7 +529,7 @@ export async function parseBytes(path: string, bytes: Uint8Array): Promise<Doc> 
   const ext = extOf(path)
   try {
     if (['xlsx', 'xlsm', 'docx'].includes(ext) && isLocked(bytes)) {
-      return { kind: 'error', path, message: `This ${kindName(ext)} is locked, so only its own app can open it and its changes can’t be shown here. Panda Redline still keeps its versions, and Restore still works.`, isNotice: true }
+      return { kind: 'error', path, message: `This ${kindName(ext)} is locked, so only its own app can open it and its changes can’t be shown here. Claude Code Track Changes still keeps its versions, and Restore still works.`, isNotice: true }
     }
     if (ext === 'xlsx' || ext === 'xlsm' || ext === 'docx' || ext === 'pdf') {
       startReading(6000)
@@ -563,7 +563,7 @@ export async function parseBytes(path: string, bytes: Uint8Array): Promise<Doc> 
         parsed = undefined
       }
       if (isAdf(parsed)) return { kind: 'lines', path, rows: cleanRows(adfRows(parsed)), isFormatted: true }
-      return { kind: 'error', path, message: 'This version isn’t a Confluence page Panda Redline can read (it may have been saved halfway).' }
+      return { kind: 'error', path, message: 'This version isn’t a Confluence page Claude Code Track Changes can read (it may have been saved halfway).' }
     }
     const rows: DocRow[] = text.split('\n').map((line, i) => ({ text: line.replace(/\t/g, '  '), anchor: `line ${i + 1}`, unit: 'line' }))
     if (rows.length > 1 && rows[rows.length - 1]?.text === '') rows.pop()
@@ -662,7 +662,7 @@ export async function scanFolder($: EngineInterface, folder: string, extra: read
 
 /** Reads a file and stores its content: its key, or why it couldn't be kept. */
 async function capture($: EngineInterface, path: string, seen: Seen): Promise<{ key: string } | { reason: string }> {
-  if (seen.size > BIG_MAX) return { reason: `it is ${mb(seen.size)}, and Panda Redline keeps files up to 50 MB` }
+  if (seen.size > BIG_MAX) return { reason: `it is ${mb(seen.size)}, and Claude Code Track Changes keeps files up to 50 MB` }
   let base64: string
   if (seen.size > READ_MAX) {
     const got = await readBigBase64($, path)
@@ -993,7 +993,7 @@ export async function answerNo($: EngineInterface, ask: Ask) {
 
 // ── Versions made by the pane: restore and keep ──
 
-/** Notes a file Panda Redline itself just wrote, as a version of its document. */
+/** Notes a file Claude Code Track Changes itself just wrote, as a version of its document. */
 export async function noteWrite($: EngineInterface, fam: Family, path: string, key: string, by: Who, note: string) {
   const st = await $.fs.stat(path).catch(() => undefined)
   const v = addVersion(fam, { path, key, size: st?.size ?? 0, at: Date.now(), by, note })
@@ -1128,7 +1128,7 @@ export async function clearProject($: EngineInterface) {
 // ════ the pane ════
 
 const PANE = 'redline'
-const TITLE = 'Panda Redline'
+const TITLE = 'Track Changes'
 
 const DEFAULT_PANE: PaneState = {
   turn: null,
@@ -1146,17 +1146,18 @@ const DEFAULT_PANE: PaneState = {
   open: [],
   cell: null,
   isListOpen: false,
+  isMoreOpen: false,
   isCommenting: false,
 }
 const DEFAULT_SETTINGS: Settings = { notices: true, autoOpen: false, tell: 'next', keepVersions: 20, keepDays: 7 }
 
-const pane = atom({ plugin: 'panda-redline', key: 'pane' } as const, DEFAULT_PANE)
-const tick = atom({ plugin: 'panda-redline', key: 'tick' } as const, 0)
-const flash = atom({ plugin: 'panda-redline', key: 'flash' } as const, { key: 0, turn: null, fresh: [] })
-const settings = atom({ plugin: 'panda-redline', key: 'prefs' } as const, DEFAULT_SETTINGS)
-const comments = atom({ plugin: 'panda-redline', key: 'comments' } as const, [])
-const notes = atom({ plugin: 'panda-redline', key: 'notes' } as const, [])
-const banner = atom({ plugin: 'panda-redline', key: 'banner' } as const, null)
+const pane = atom({ plugin: 'track-changes', key: 'pane' } as const, DEFAULT_PANE)
+const tick = atom({ plugin: 'track-changes', key: 'tick' } as const, 0)
+const flash = atom({ plugin: 'track-changes', key: 'flash' } as const, { key: 0, turn: null, fresh: [] })
+const settings = atom({ plugin: 'track-changes', key: 'prefs' } as const, DEFAULT_SETTINGS)
+const comments = atom({ plugin: 'track-changes', key: 'comments' } as const, [])
+const notes = atom({ plugin: 'track-changes', key: 'notes' } as const, [])
+const banner = atom({ plugin: 'track-changes', key: 'banner' } as const, null)
 
 /** What this session's hooks share; set again on each load by session.start. */
 const session = {
@@ -1394,6 +1395,7 @@ async function onKey($: EngineInterface, key: string, surface: RenderSurface) {
   if (key === 'h') return setView($, p.view === 'history' ? 'changes' : 'history')
   if (key === 'c' && p.focus !== null) return update($, pane, old => ({ ...old, isCommenting: true }))
   if (key === 'l') return update($, pane, old => ({ ...old, isListOpen: !old.isListOpen }))
+  if (key === 'm' || key === '?') return update($, pane, old => ({ ...old, isMoreOpen: !old.isMoreOpen }))
   if (key === 'return' && p.focus !== null && d?.isGrid) {
     // Enter on a change in a sheet shows its cell's old and new formula.
     const change = d.changes[p.focus]
@@ -1406,7 +1408,7 @@ async function stepDoc($: EngineInterface, delta: number) {
   const shown = shownOf(p)
   if (!shown || shown.docs.length < 2) return
   const doc = (shown.index + delta + shown.docs.length) % shown.docs.length
-  await update($, pane, old => ({ ...DEFAULT_PANE, mode: old.mode, turn: shown.turn?.id ?? old.turn, doc }))
+  await update($, pane, old => ({ ...DEFAULT_PANE, mode: old.mode, isMoreOpen: old.isMoreOpen, turn: shown.turn?.id ?? old.turn, doc }))
 }
 
 /** Inline on small panes; side by side once there is room for two readable columns. */
@@ -1444,7 +1446,7 @@ async function onClick($: EngineInterface, post: { y: number; x: number }, surfa
 async function tell($: EngineInterface, note: string) {
   const s = await read($, settings)
   if (s.tell === 'now') {
-    void $.prompt.submit({ text: `Panda Redline note: ${note}` })
+    void $.prompt.submit({ text: `Claude Code Track Changes note: ${note}` })
     return 'Claude has been told.'
   }
   await update($, notes, old => [...old, note])
@@ -1620,7 +1622,7 @@ async function deliver($: EngineInterface, how: 'fill' | 'submit') {
   let text = feedbackPrompt(drafts, session.folder)
   const waiting = await read($, notes)
   if (waiting.length > 0) {
-    text = `Panda Redline note: ${waiting.join(' ')}\n\n${text}`
+    text = `Claude Code Track Changes note: ${waiting.join(' ')}\n\n${text}`
     await update($, notes, () => [])
     await $.store.set('notes', [])
   }
@@ -1786,7 +1788,7 @@ async function examples($: EngineInterface, base: string): Promise<string> {
     if (k > 99) return `There are already 99 sample folders next to ${base}. Delete some first.`
     folder = `${base}-${k}`
   }
-  if (!folder.startsWith(`${session.folder}/`)) return `The samples go inside the working folder (${session.folder}), so Panda Redline can track them.`
+  if (!folder.startsWith(`${session.folder}/`)) return `The samples go inside the working folder (${session.folder}), so Claude Code Track Changes can track them.`
   if (vault.index.running) return 'Claude is working right now. Try /redline examples again when it finishes.'
   // Before: the documents as they were.
   const names = ['plan.md', 'meter-readings.csv']
@@ -1907,7 +1909,7 @@ export const register: Register = on => {
     await redraw($)
     if ((await $.store.get('welcomed')) !== true) {
       await $.store.set('welcomed', true)
-      $.ui.toast('🐼 Panda Redline is ready. When Claude edits a document, /redline shows what changed. Try /redline examples. Nothing to install; documents over 4 MB need Python 3.')
+      $.ui.toast('🐼 Claude Code Track Changes is ready. When Claude edits a document, /redline shows what changed. Try /redline examples. Nothing to install; documents over 4 MB need Python 3.')
     }
     await $.command.register({
       name: 'redline',
@@ -1924,7 +1926,7 @@ export const register: Register = on => {
       // Only the person changes settings, writes samples or clears versions; another plugin running /redline can't.
       const isPerson = ['composer', 'bridge', undefined].includes(e.origin?.kind as string | undefined)
       if (isHomeOrRoot(session.folder) && word !== 'setup') {
-        return { text: 'Panda Redline doesn’t watch a home folder or a drive’s root (it would copy far too much). Start Claude Code in a project folder and try again.' }
+        return { text: 'Claude Code Track Changes doesn’t watch a home folder or a drive’s root (it would copy far too much). Start Claude Code in a project folder and try again.' }
       }
       const toggles: Record<string, Partial<Settings>> = {
         'notices on': { notices: true },
@@ -1936,7 +1938,7 @@ export const register: Register = on => {
       }
       const toggle = toggles[word]
       if (toggle) {
-        if (!isPerson) return { text: 'Only you can change Panda Redline’s settings.', exitCode: 1 }
+        if (!isPerson) return { text: 'Only you can change Claude Code Track Changes’ settings.', exitCode: 1 }
         await setSetting($, toggle)
         return { text: 'Saved.' }
       }
@@ -1949,7 +1951,7 @@ export const register: Register = on => {
       }
       if (word === 'examples' || word.startsWith('examples ')) {
         if (!isPerson) return { text: 'Only you can write the samples: type /redline examples.', exitCode: 1 }
-        const text = await examples($, typedPath(args.slice('examples'.length).trim() || 'panda-redline-examples'))
+        const text = await examples($, typedPath(args.slice('examples'.length).trim() || 'track-changes-examples'))
         const opened = await openPane($, true)
         return { text: opened.isPlaced ? text : `${text} Make the window wider to see the pane, or run /redline again.` }
       }
@@ -1958,13 +1960,13 @@ export const register: Register = on => {
         const found = await runPython($, '--check', 15_000)
         if (found !== 'none' && found !== 'timeout') return { text: `Python ${/LPP1 ok (\S+)/.exec(found)?.[1] ?? '3'} is ready: documents over 4 MB (up to 50 MB) are tracked too. Nothing was installed.` }
         return {
-          text: 'Documents up to 4 MB are tracked with nothing installed. Documents over 4 MB need Python 3, which isn’t on this computer (or Claude Code can’t see it). Nothing has been installed. If you’d like it, ask Claude: “Please help me install Python 3 for Panda Redline.”',
+          text: 'Documents up to 4 MB are tracked with nothing installed. Documents over 4 MB need Python 3, which isn’t on this computer (or Claude Code can’t see it). Nothing has been installed. If you’d like it, ask Claude: “Please help me install Python 3 for Claude Code Track Changes.”',
         }
       }
       if (word === 'history' || word.startsWith('history ')) {
         const name = args.slice('history'.length).trim()
         const fam = name ? familyNamed(name) : shownOf(await read($, pane))?.fam
-        if (!fam) return { text: name ? `Panda Redline has no versions of ${name} yet.` : 'Name a document: /redline history budget.xlsx', exitCode: 1 }
+        if (!fam) return { text: name ? `Claude Code Track Changes has no versions of ${name} yet.` : 'Name a document: /redline history budget.xlsx', exitCode: 1 }
         await showFamily($, fam.id, null, null, 'history')
         await openPane($, isPerson)
         return { text: `${fam.name}: ${plural(fam.versions.length, 'version')}.` }
@@ -1978,8 +1980,8 @@ export const register: Register = on => {
             text: !isThere
               ? `No document at ${path}.`
               : !isTracked(path)
-                ? `Panda Redline tracks Excel, Word, PDF, Markdown, Confluence, HTML, CSV and text files, not .${extOf(path) || '(no type)'} files.`
-                : `Panda Redline hasn’t seen ${nameOf(path)} change yet.`,
+                ? `Claude Code Track Changes tracks Excel, Word, PDF, Markdown, Confluence, HTML, CSV and text files, not .${extOf(path) || '(no type)'} files.`
+                : `Claude Code Track Changes hasn’t seen ${nameOf(path)} change yet.`,
             exitCode: 1,
           }
         }
@@ -1990,7 +1992,7 @@ export const register: Register = on => {
       }
       // Typed by the person: the pane takes the keys, so n and p step through the changes at once (Esc gives them back).
       const opened = await openPane($, isPerson)
-      return { text: opened.isPlaced ? 'Panda Redline opened.' : 'Panda Redline needs a wider terminal: make the window wider, or run /redline again.' }
+      return { text: opened.isPlaced ? 'Claude Code Track Changes opened.' : 'Claude Code Track Changes needs a wider terminal: make the window wider, or run /redline again.' }
     } catch (failure) {
       return { text: `/redline ${sanitizeLine(e.args.trim(), 200)} failed: ${errorText(failure)}`, exitCode: 1 }
     }
@@ -2004,7 +2006,7 @@ export const register: Register = on => {
     await update($, notes, () => [])
     await $.store.set('notes', [])
     $.ui.log(`Told Claude: ${waiting.join(' ')}`)
-    return next({ ...e, context: [...(e.context ?? []), `Panda Redline note: ${waiting.join(' ')}`] })
+    return next({ ...e, context: [...(e.context ?? []), `Claude Code Track Changes note: ${waiting.join(' ')}`] })
   }).catch(($, e, next) => next(e))
 
   // The start of Claude's turn: the folder is noted, so only Claude's changes are shown as Claude's.
@@ -2052,7 +2054,7 @@ export const register: Register = on => {
     if (e.requestId !== PANE) return next(e)
     const post = e.data as ChangesPost | { type: 'tab'; index: number } | { type: 'aside'; id: string }
     if (post.type === 'tab') {
-      await update($, pane, old => ({ ...DEFAULT_PANE, mode: old.mode, turn: old.turn, doc: post.index }))
+      await update($, pane, old => ({ ...DEFAULT_PANE, mode: old.mode, isMoreOpen: old.isMoreOpen, turn: old.turn, doc: post.index }))
     } else if (post.type === 'aside') {
       if (post.id === 'mode') await toggleMode($, drawnBy.get(e.surface)?.columns ?? 80)
       else if (post.id === 'history') await setView($, (await read($, pane)).view === 'history' ? 'changes' : 'history')
@@ -2158,7 +2160,6 @@ function drawPane($: EngineInterface, ctx: Ctx): JSX.Element {
     if (ask) parts.push(askRow($, ctx, ask))
     parts.push(emptyView(ctx))
   } else {
-    if (!ctx.isTiny) parts.push(versionsRow($, ctx))
     // A short pane keeps the question to a line in the summary; it's answered in a taller one.
     if (ask && p.view === 'changes' && !ctx.isTiny) parts.push(askRow($, ctx, ask))
     if (p.view === 'history') parts.push(historyView($, ctx))
@@ -2194,8 +2195,6 @@ function drawPane($: EngineInterface, ctx: Ctx): JSX.Element {
 function topBar(ctx: Ctx): Part {
   const { Text } = ctx.els
   const shown = ctx.shown
-  const ext = shown ? extOf(shown.after.path) : ''
-  const badge = BADGES[ext === 'xlsm' ? 'xlsx' : ext === 'tsv' ? 'csv' : ext === 'markdown' ? 'md' : ext]
   const side = (ctx.p.mode === 'auto' ? autoMode(ctx.columns) : ctx.p.mode) === 'side'
   const names = shown
     ? shown.docs.map((d, i) => {
@@ -2206,20 +2205,25 @@ function topBar(ctx: Ctx): Part {
         return i === shown.index && after && nameOf(after.path) !== name ? `${name} → ${nameOf(after.path)}` : after && nameOf(after.path) !== name ? `${name} → ${nameOf(after.path)}` : name
       })
     : [TITLE]
-  const isChanges = ctx.p.view === 'changes'
+  // One quiet line: the name, then how many changes and when, dim. The rest is under m: more.
+  const n = ctx.c && !ctx.c.error ? ctx.c.changes.length : null
+  const detail = shown
+    ? [
+        n === null ? '' : n === 0 ? 'no changes' : plural(n, 'change'),
+        `${shown.before ? `${clock(shown.before.at)} → ` : 'new, '}${clock(shown.after.at)}${shown.after.key === null ? ' deleted' : ''}`,
+        `by ${shortWho(shown.after)}`,
+        side ? 'side by side' : '',
+      ]
+        .filter(Boolean)
+        .join(' · ')
+    : ''
   const props: FileBarProps = {
     files: names.map(name => ({ name, color: pal.accent })),
     active: shown?.index ?? 0,
     colors: { accent: pal.accent, text: pal.text, subtle: pal.subtle, dim: pal.dim, band: pal.band },
-    ...(badge ? { badge } : {}),
     width: ctx.columns,
-    asides: shown
-      ? [
-          ...(isChanges ? [{ id: 'mode', label: side ? '◫ Side by side' : '▤ Inline', short: side ? '◫' : '▤', color: pal.accent }] : []),
-          { id: 'history', label: '◷ History', short: '◷', color: ctx.p.view === 'history' ? pal.accent : pal.subtle, isBold: ctx.p.view === 'history' },
-          { id: 'settings', label: '⚙', short: '⚙', color: ctx.p.view === 'settings' ? pal.accent : pal.subtle },
-        ]
-      : [{ id: 'settings', label: '⚙ Settings', short: '⚙', color: ctx.p.view === 'settings' ? pal.accent : pal.subtle }],
+    detail,
+    asides: shown ? [] : [{ id: 'settings', label: '⚙ Settings', short: '⚙', color: ctx.p.view === 'settings' ? pal.accent : pal.subtle }],
   }
   if (!ctx.Client) return <Text bold>{names[props.active] ?? TITLE}</Text>
   return h(ctx.Client, { module: './filebar.tsx', key: 'docs', props })
@@ -2240,35 +2244,6 @@ function bannerRow($: EngineInterface, ctx: Ctx): RenderNode {
   )
 }
 
-function versionsRow($: EngineInterface, ctx: Ctx): RenderNode {
-  const { Box, Text, Button } = ctx.els
-  const { before, after } = ctx.shown!
-  const narrow = ctx.columns < 70
-  const pick = (view: PaneView) => () => void setView($, ctx.p.view === view ? 'changes' : view)
-  return (
-    <Box flexDirection="row" columnGap={1}>
-      {before === null ? <Text color={pal.subtle}>New document,</Text> : null}
-      {before !== null && !narrow ? <Text color={pal.subtle}>Before</Text> : null}
-      {before !== null ? (
-        <Button key="pick-before" plain onPress={pick('pick-before')}>
-          <Text color={pal.accent} bold>{clock(before.at)} ▾</Text>
-        </Button>
-      ) : null}
-      {before !== null ? <Text color={pal.dim}>→</Text> : null}
-      {before !== null && !narrow ? <Text color={pal.subtle}>After</Text> : null}
-      <Button key="pick-after" plain onPress={pick('pick-after')}>
-        <Text color={pal.accent} bold>{clock(after.at)} ▾</Text>
-      </Button>
-      <Box flexShrink={1}>
-        <Text color={isClaude(after) ? pal.claude : pal.text} wrap="truncate-end">
-          {after.key === null ? 'deleted ' : ''}
-          {narrow ? shortWho(after) : whoOf(after)}
-        </Text>
-      </Box>
-    </Box>
-  )
-}
-
 async function answer($: EngineInterface, ask: Ask, family: string | null) {
   if (family) await joinFamily($, ask.version, family, `${ask.path}→${ask.guess.path}`)
   else await answerNo($, ask)
@@ -2280,16 +2255,16 @@ async function answer($: EngineInterface, ask: Ask, family: string | null) {
 function askRow($: EngineInterface, ctx: Ctx, ask: Ask): RenderNode {
   const { Box, Text, Button } = ctx.els
   return (
-    <Box flexDirection="row" columnGap={1} {...(ctx.isCompact ? {} : { borderStyle: 'round', borderColor: pal.warning, paddingX: 1 })}>
+    <Box flexDirection="row" columnGap={1}>
       <Box flexGrow={1} flexShrink={1}>
-        <Text wrap={ctx.isCompact ? 'truncate-end' : 'wrap'}>
+        <Text wrap="truncate-end">
           <Text color={pal.warning} bold>? </Text>
           Is <Text bold>{nameOf(ask.path)}</Text> a new version of <Text bold>{nameOf(ask.guess.path)}</Text>?
         </Text>
       </Box>
-      <Button key="ask-yes" label="Yes" variant="primary" onPress={() => void answer($, ask, ask.guess.family)} />
-      <Button key="ask-no" label="No" onPress={() => void answer($, ask, null)} />
-      <Button key="ask-pick" label={ctx.columns < 70 ? 'Other' : 'Pick another'} plain onPress={() => void setView($, 'pick-parent')} />
+      <Button key="ask-yes" label="Yes" plain onPress={() => void answer($, ask, ask.guess.family)} />
+      <Button key="ask-no" label="No" plain dimColor onPress={() => void answer($, ask, null)} />
+      <Button key="ask-pick" label={ctx.columns < 70 ? 'Other' : 'Pick another'} plain dimColor onPress={() => void setView($, 'pick-parent')} />
     </Box>
   )
 }
@@ -2314,7 +2289,7 @@ function pickParentView($: EngineInterface, ctx: Ctx): RenderNode {
       ))}
       <Box flexDirection="row" columnGap={2}>
         <Button key="parent-none" label="None: it’s a new document" plain onPress={() => void answer($, ask, null)} />
-        <Button key="parent-back" label="Back" plain onPress={() => void setView($, 'changes')} />
+        <Button key="parent-back" label="back" hotkey="b" plain onPress={() => void setView($, 'changes')} />
       </Box>
     </Box>
   )
@@ -2325,7 +2300,7 @@ function emptyView(ctx: Ctx): RenderNode {
   const isWatched = !isHomeOrRoot(session.folder)
   const message = isWatched
     ? ['No changes from Claude yet.', 'When Claude edits a document,', 'it’ll show up here.']
-    : ['Panda Redline doesn’t watch a home', 'folder or a drive’s root. Start', 'Claude Code in a project folder.']
+    : ['Track Changes doesn’t watch a home', 'folder or a drive’s root. Start', 'Claude Code in a project folder.']
   const hints = (
     <>
       <Text wrap="truncate-end">
@@ -2412,33 +2387,27 @@ function changesView($: EngineInterface, ctx: Ctx): Part[] {
   const isGrid = cmp.kind === 'grid'
   const sheets = isGrid ? cmp.sheets : []
   const sheet = isGrid ? clamp(p.sheet, 0, Math.max(0, sheets.length - 1)) : 0
-  out.push(
-    <Text wrap="truncate-end">
-      {ctx.isTiny ? (
-        <Text color={pal.subtle}>
-          {shown.before ? `${clock(shown.before.at)} → ` : 'New · '}
-          {clock(shown.after.at)} {shortWho(shown.after)} ·{' '}
-        </Text>
-      ) : null}
-      <Text bold color={c.changes.length > 0 ? pal.text : pal.subtle}>
-        {c.changes.length > 0 ? (ctx.isTiny ? plural(c.changes.length, 'change') : c.summary) : 'No changes between these two versions'}
-      </Text>
-      {ctx.isTiny && vault.index.asks[0] ? <Text color={pal.warning}> · ? a question for you (make the pane taller)</Text> : null}
-      {c.note && !ctx.isCompact ? <Text color={pal.dim}>  ⓘ {c.note}</Text> : null}
-    </Text>,
-  )
   let extras = 0
-  if (isGrid && sheets.length > 1 && !ctx.isTiny) {
+  // The count is in the top bar; a short pane only says a question is waiting.
+  if (ctx.isTiny && vault.index.asks[0]) {
+    extras += 1
+    out.push(<Text color={pal.warning} wrap="truncate-end">? A question for you: make the pane taller to answer it</Text>)
+  }
+  if (c.changes.length === 0) {
+    extras += 1
+    out.push(<Text color={pal.subtle}>No changes between these two versions.</Text>)
+  }
+  // Sheet tabs only when more than one sheet changed: one sheet needs no tabs.
+  if (isGrid && sheets.filter(one => one.status !== 'same').length > 1 && !ctx.isTiny) {
     extras += 1
     out.push(
-      <Box flexDirection="row" columnGap={2}>
+      <Box flexDirection="row" columnGap={3} {...(ctx.isCompact ? {} : { marginTop: 1 })}>
         {sheets.map((one, i) => {
           const mark = one.status === 'added' ? '+ ' : one.status === 'removed' ? '− ' : one.status === 'same' ? '' : '~ '
-          const color = one.status === 'added' ? pal.success : one.status === 'removed' ? pal.error : one.status === 'same' ? pal.subtle : pal.warning
           const isOn = i === sheet
           return (
             <Button key={`sheet-${i}`} plain onPress={() => void update($, pane, old => ({ ...old, sheet: i, top: 0, left: 0, cell: null }))}>
-              <Text color={isOn ? pal.accent : color} bold={isOn} underline={isOn}>
+              <Text color={isOn ? pal.text : pal.subtle} bold={isOn}>
                 {`${mark}${cutTo(one.name, 20)}${one.status === 'renamed' && ctx.columns >= 90 ? ` (was ${cutTo(one.was ?? '', 14)})` : ''}`}
               </Text>
             </Button>
@@ -2450,10 +2419,11 @@ function changesView($: EngineInterface, ctx: Ctx): Part[] {
   const picked = isGrid && p.cell ? cellDetail(ctx, cmp as GridComparison, sheet, p.cell) : null
   if (picked) extras += 1
   const drafts = ctx.notes.filter(n => n.status === 'draft')
-  const listLines = c.changes.length === 0 ? 0 : p.isListOpen ? Math.min(c.changes.length, ctx.isCompact ? 4 : 8) + 1 : 1
+  const listLines = c.changes.length === 0 ? 0 : (p.isListOpen ? Math.min(c.changes.length, ctx.isCompact ? 4 : 8) + 1 : 1) + (ctx.isCompact ? 0 : 1)
   const hasActions = !ctx.isTiny || ctx.rows >= 12
-  extras += listLines + (p.isCommenting ? (ctx.isCompact ? 1 : 3) : 0) + (drafts.length > 0 ? 1 : 0) + (hasActions ? 1 : 0) + (ctx.isCompact ? 0 : 2)
-  const fixed = (ctx.isTiny ? 2 : 3) + (ctx.banner ? 1 : 0) + (vault.index.asks[0] && !ctx.isTiny ? (ctx.isCompact ? 1 : 3) : 0) + extras + (ctx.waiting.length > 0 ? 1 : 0)
+  const moreLines = p.isMoreOpen && hasActions ? (ctx.isCompact ? 3 : 4) : 0
+  extras += listLines + (p.isCommenting ? (ctx.isCompact ? 1 : 3) : 0) + (drafts.length > 0 ? 1 : 0) + (hasActions ? 1 : 0) + moreLines + (ctx.isCompact ? 0 : 1)
+  const fixed = 1 + (ctx.banner ? 1 : 0) + (vault.index.asks[0] && !ctx.isTiny ? 1 : 0) + extras + (ctx.waiting.length > 0 ? 1 : 0)
   const height = clamp(ctx.rows - fixed - (ctx.isTiny ? 0 : 1), ctx.isTiny ? 2 : 3, 200)
   const mode = p.mode === 'auto' ? autoMode(ctx.columns) : p.mode
   const width = Math.max(30, ctx.columns - 3)
@@ -2476,16 +2446,21 @@ function changesView($: EngineInterface, ctx: Ctx): Part[] {
     width,
     scroll: { top, shown: visible.length, total },
     // A short pane has the scrollbar to say there's more; a taller one says how much.
-    ...(below > 0 && !ctx.isTiny ? { below: `${plural(below, 'more line')} below${ctx.columns >= 70 ? ' · scroll, PgDn, or n for the next change' : ''}` } : {}),
+    ...(below > 0 && !ctx.isTiny ? { below: `${plural(below, 'more line')} below` } : {}),
   }
+  // Air above the view, so the sheet or page stands apart from the header.
+  if (!ctx.isCompact) out.push(<Text> </Text>)
   if (ctx.Client) out.push(h(ctx.Client, { module: './changes.tsx', key: 'changes', props, height: visible.length + (props.below ? 1 : 0) }))
   else out.push(<Text>{visible.map(rowText).join('\n')}</Text>)
   if (picked) out.push(picked)
-  if (c.changes.length > 0) out.push(changeList($, ctx, c))
+  if (c.changes.length > 0) {
+    if (!ctx.isCompact) out.push(<Text> </Text>)
+    out.push(changeList($, ctx, c))
+  }
   if (p.isCommenting && p.focus !== null) out.push(commentBox($, ctx, shown, c, p.focus))
   if (drafts.length > 0) out.push(draftsRow($, ctx, drafts))
   if (hasActions) out.push(actionsRow($, ctx, c))
-  if (!ctx.isCompact) out.push(keysRow($, ctx, isGrid, sheets.length))
+  if (hasActions && p.isMoreOpen) out.push(moreRows($, ctx, c, isGrid, sheets.length))
   return out
 }
 
@@ -2532,28 +2507,23 @@ function changeList($: EngineInterface, ctx: Ctx, c: Compared): RenderNode {
   const { p } = ctx
   const n = c.changes.length
   const focus = p.focus
-  const step = (delta: number) => () => void focusChange($, (focus ?? (delta > 0 ? -1 : 0)) + delta, ctx.surface)
   const current = focus !== null ? c.changes[focus] : undefined
   const head = (
-    <Box flexDirection="row" columnGap={1}>
-      <Button key="list-toggle" hotkey="l" plain onPress={() => void update($, pane, old => ({ ...old, isListOpen: !old.isListOpen }))}>
-        <Text color={pal.accent} bold>{p.isListOpen ? '▾ ' : '▸ '}</Text>
-        <Text bold>{current ? `${focus! + 1} of ${n}` : 'Changes'}</Text>
-      </Button>
+    <Box flexDirection="row" columnGap={2}>
       <Box flexGrow={1} flexShrink={1}>
-        {current ? (
-          <Text wrap="truncate-end">
-            <Text color={colorOf(current)} bold>{markOf(current)} </Text>
-            {current.label}
-          </Text>
-        ) : (
-          <Text color={pal.subtle} wrap="truncate-end">
-            {ctx.columns >= 60 ? 'click one, or press n to step through them' : 'n: next'}
-          </Text>
-        )}
+        <Button key="list-toggle" plain onPress={() => void update($, pane, old => ({ ...old, isListOpen: !old.isListOpen }))}>
+          <Text color={pal.accent}>{p.isListOpen ? '▾ ' : '▸ '}</Text>
+          {current ? (
+            <Text bold>
+              <Text color={colorOf(current)}>{markOf(current)} </Text>
+              {cutTo(current.label, Math.max(10, ctx.columns - 18))}
+            </Text>
+          ) : (
+            <Text color={pal.subtle}>{ctx.columns >= 60 ? 'press n to go to the first change' : 'n: first change'}</Text>
+          )}
+        </Button>
       </Box>
-      <Button key="prev" label="prev" hotkey="p" plain onPress={step(-1)} />
-      <Button key="next" label="next" hotkey="n" plain onPress={step(1)} />
+      <Text color={pal.subtle}>{current ? `${focus! + 1} of ${n}` : plural(n, 'change')}</Text>
     </Box>
   )
   if (!p.isListOpen) return head
@@ -2568,9 +2538,9 @@ function changeList($: EngineInterface, ctx: Ctx, c: Compared): RenderNode {
         const hasComment = ctx.notes.some(note => note.status === 'draft' && note.family === ctx.shown?.fam.id && note.change === i)
         return (
           <Button key={`change-${i}`} plain onPress={() => void focusChange($, i, ctx.surface)}>
-            <Text color={pal.accent} bold>{isOn ? ' ▸ ' : '   '}</Text>
-            <Text color={colorOf(change)} bold>{markOf(change)} </Text>
-            <Text bold={isOn}>{cutTo(change.label, Math.max(10, ctx.columns - 10))}</Text>
+            <Text color={pal.accent}>{isOn ? '  ▸ ' : '    '}</Text>
+            <Text color={colorOf(change)}>{markOf(change)} </Text>
+            <Text bold={isOn} color={isOn ? pal.text : pal.subtle}>{cutTo(change.label, Math.max(10, ctx.columns - 10))}</Text>
             {hasComment ? <Text color={pal.comment}> ✎</Text> : ''}
           </Button>
         )
@@ -2617,6 +2587,7 @@ function draftsRow($: EngineInterface, ctx: Ctx, drafts: RedlineComment[]): Rend
   )
 }
 
+/** The one footer line: the way through the changes and m: more on the left, Restore and Keep on the right. */
 function actionsRow($: EngineInterface, ctx: Ctx, c: Compared | null): RenderNode {
   const { Box, Button } = ctx.els
   const { p } = ctx
@@ -2624,65 +2595,106 @@ function actionsRow($: EngineInterface, ctx: Ctx, c: Compared | null): RenderNod
   const narrow = ctx.columns < 70
   const copies = Object.values(vault.index.files).filter(k => k.family === fam.id).length
   const canKeep = after.key !== null && (after.path !== fam.home || copies > 1) && after.id === latestOf(fam)?.id
-  const app = APPS[extOf(after.path)]
+  const canRestore = before && before.key !== null && vault.index.files[before.path]?.key !== before.key
+  const hasChanges = !!c && c.changes.length > 0
+  const step = (delta: number) => () => void focusChange($, (p.focus ?? (delta > 0 ? -1 : 0)) + delta, ctx.surface)
   return (
     <Box flexDirection="row" columnGap={2}>
-      {before && before.key !== null && vault.index.files[before.path]?.key !== before.key ? (
+      {hasChanges ? <Button key="next" label="next" hotkey="n" plain dimColor onPress={step(1)} /> : null}
+      {hasChanges ? <Button key="prev" label="prev" hotkey="p" plain dimColor onPress={step(-1)} /> : null}
+      {c && p.focus !== null && !p.isCommenting && ctx.Input ? <Button key="comment" label="comment" hotkey="c" plain dimColor onPress={() => void update($, pane, old => ({ ...old, isCommenting: true }))} /> : null}
+      <Button key="more" label={p.isMoreOpen ? 'less' : 'more'} hotkey="m" plain dimColor onPress={() => void update($, pane, old => ({ ...old, isMoreOpen: !old.isMoreOpen }))} />
+      <Box flexGrow={1} />
+      {canRestore ? (
         <Button
           key="restore"
-          label={narrow ? `↺ ${clock(before.at)}` : after.key === null ? `↺ Bring back ${nameOf(before.path)}` : `↺ Restore ${clock(before.at)} version`}
+          label={narrow ? 'restore' : after.key === null ? `bring back ${nameOf(before!.path)}` : `restore ${clock(before!.at)}`}
           hotkey="r"
-          onPress={() => void setView($, 'restore', before.id)}
+          plain
+          onPress={() => void setView($, 'restore', before!.id)}
         />
       ) : null}
-      {canKeep ? <Button key="keep" label={narrow ? '✓ Keep' : '✓ Keep this version'} hotkey="k" onPress={() => void setView($, 'keep', after.id)} /> : null}
-      {c && p.focus !== null && !p.isCommenting && ctx.Input ? <Button key="comment" label="✎ Comment" hotkey="c" plain onPress={() => void update($, pane, old => ({ ...old, isCommenting: true }))} /> : null}
-      {session.opener && after.key !== null && app ? <Button key="open" label={narrow ? 'Open' : `Open in ${app}`} hotkey="o" plain onPress={() => void openOutside($, after.path)} /> : null}
+      {canKeep ? <Button key="keep" label="keep" hotkey="k" plain onPress={() => void setView($, 'keep', after.id)} /> : null}
     </Box>
   )
 }
 
-/** The legend, then the pane's keys as buttons: each one's letter presses it while the pane has the keys. */
-function keysRow($: EngineInterface, ctx: Ctx, isGrid: boolean, sheets: number): RenderNode {
+/** Under m: the summary, the other tools, the versions compared, settings, and the legend. */
+function moreRows($: EngineInterface, ctx: Ctx, c: Compared | null, isGrid: boolean, sheets: number): RenderNode {
   const { Box, Text, Button } = ctx.els
   const { p } = ctx
+  const { before, after } = ctx.shown!
   const side = (p.mode === 'auto' ? autoMode(ctx.columns) : p.mode) === 'side'
   const docs = ctx.shown?.docs.length ?? 0
-  const narrow = ctx.columns < 90
+  const app = APPS[extOf(after.path)]
+  const pick = (view: PaneView) => () => void setView($, ctx.p.view === view ? 'changes' : view)
   const tools: { key: string; label: string; hotkey: string; onPress: () => void }[] = [
-    { key: 'k-view', label: side ? 'Inline' : 'Side by side', hotkey: 'v', onPress: () => void toggleMode($, ctx.columns) },
-    { key: 'k-history', label: 'History', hotkey: 'h', onPress: () => void setView($, 'history') },
-    ...(docs > 1 ? [{ key: 'k-doc', label: 'Next document', hotkey: 'd', onPress: () => void stepDoc($, 1) }] : []),
-    ...(isGrid && p.focus !== null && ctx.c?.changes[p.focus]?.col !== undefined
+    { key: 'k-view', label: side ? 'inline' : 'side by side', hotkey: 'v', onPress: () => void toggleMode($, ctx.columns) },
+    { key: 'k-history', label: 'history', hotkey: 'h', onPress: () => void setView($, 'history') },
+    ...(c && c.changes.length > 0 ? [{ key: 'k-list', label: p.isListOpen ? 'hide list' : 'list', hotkey: 'l', onPress: () => void update($, pane, old => ({ ...old, isListOpen: !old.isListOpen })) }] : []),
+    ...(docs > 1 ? [{ key: 'k-doc', label: 'next document', hotkey: 'd', onPress: () => void stepDoc($, 1) }] : []),
+    ...(isGrid && p.focus !== null && c?.changes[p.focus]?.col !== undefined
       ? [
           {
             key: 'k-formula',
-            label: p.cell ? 'Hide formula' : 'Formula',
+            label: p.cell ? 'hide formula' : 'formula',
             hotkey: 'f',
             onPress: () => {
-              const change = ctx.c?.changes[p.focus ?? -1]
+              const change = c?.changes[p.focus ?? -1]
               if (change?.col !== undefined) void update($, pane, old => ({ ...old, cell: old.cell ? null : `${change.op}:${change.col}` }))
             },
           },
         ]
       : []),
-    ...(isGrid && sheets > 1 ? [{ key: 'k-sheet', label: 'Next sheet', hotkey: 's', onPress: () => void update($, pane, old => ({ ...old, sheet: (old.sheet + 1) % sheets, top: 0, left: 0, cell: null })) }] : []),
+    ...(isGrid && sheets > 1 ? [{ key: 'k-sheet', label: 'next sheet', hotkey: 's', onPress: () => void update($, pane, old => ({ ...old, sheet: (old.sheet + 1) % sheets, top: 0, left: 0, cell: null })) }] : []),
+    ...(session.opener && after.key !== null && app ? [{ key: 'open', label: ctx.columns < 90 ? 'open' : `open in ${app}`, hotkey: 'o', onPress: () => void openOutside($, after.path) }] : []),
   ]
   return (
-    <Box flexDirection="column">
-      <Box flexDirection="row" columnGap={2}>
-        {tools.slice(0, narrow ? 4 : tools.length).map(t => (
+    <Box flexDirection="column" {...(ctx.isCompact ? {} : { marginTop: 1 })}>
+      {c && c.summary && c.changes.length > 0 ? (
+        <Text color={pal.subtle} wrap="truncate-end">
+          {c.summary}
+          {c.note ? `  ⓘ ${c.note}` : ''}
+        </Text>
+      ) : null}
+      <Box flexDirection="row" columnGap={2} flexWrap="wrap">
+        {tools.map(t => (
           <Button key={t.key} label={t.label} hotkey={t.hotkey} plain dimColor onPress={t.onPress} />
         ))}
       </Box>
-      <Text wrap="truncate-end">
-        <Text color={pal.error} bold>−</Text>
-        <Text color={pal.dim}> removed  </Text>
-        <Text color={pal.success} bold>+</Text>
-        <Text color={pal.dim}> added  </Text>
-        <Text color={pal.warning} bold>~</Text>
-        <Text color={pal.dim}> changed  · Esc: back to Claude{isGrid && !narrow ? ' · click a cell for its formula' : ''}</Text>
-      </Text>
+      <Box flexDirection="row" columnGap={1}>
+        <Text color={pal.subtle}>Compare</Text>
+        {before !== null ? (
+          <Button key="pick-before" plain dimColor onPress={pick('pick-before')}>
+            {`${clock(before.at)} ▾`}
+          </Button>
+        ) : (
+          <Text color={pal.subtle}>new</Text>
+        )}
+        <Text color={pal.dim}>→</Text>
+        <Button key="pick-after" plain dimColor onPress={pick('pick-after')}>
+          {`${clock(after.at)} ▾`}
+        </Button>
+        <Box flexShrink={1}>
+          <Text color={pal.subtle} wrap="truncate-end">{whoOf(after)}</Text>
+        </Box>
+        <Box flexGrow={1} />
+        <Button
+          key="settings"
+          label="⚙ settings"
+          plain
+          dimColor
+          onPress={async () => {
+            session.space = await spaceUsed($).catch(() => null)
+            await setView($, 'settings')
+          }}
+        />
+      </Box>
+      {ctx.isCompact ? null : (
+        <Text color={pal.dim} wrap="truncate-end">
+          − removed  + added  ~ changed · Esc: back to Claude{isGrid && ctx.columns >= 90 ? ' · click a cell for its formula' : ''}
+        </Text>
+      )}
     </Box>
   )
 }
@@ -2727,7 +2739,7 @@ function historyView($: EngineInterface, ctx: Ctx): RenderNode {
       <Text color={pal.dim} wrap="truncate-end">
         Keeps the last {ctx.s.keepVersions} versions for up to {plural(ctx.s.keepDays, 'day')} · ⚙ to change
       </Text>
-      <Button key="history-back" label="Back to the changes" plain onPress={() => void setView($, 'changes')} />
+      <Button key="history-back" label="back to the changes" hotkey="b" plain onPress={() => void setView($, 'changes')} />
     </Box>
   )
 }
@@ -2752,7 +2764,7 @@ function pickView($: EngineInterface, ctx: Ctx): RenderNode {
         </Button>
       ))}
       {options.length === 0 ? <Text color={pal.subtle}>No {isBefore ? 'earlier' : 'later'} versions.</Text> : null}
-      <Button key="pick-back" label="Back" plain onPress={() => void setView($, 'changes')} />
+      <Button key="pick-back" label="back" hotkey="b" plain onPress={() => void setView($, 'changes')} />
     </Box>
   )
 }
@@ -2797,7 +2809,7 @@ function keepView($: EngineInterface, ctx: Ctx): RenderNode {
     return (
       <Box flexDirection="column">
         <Text>This version is already in {nameOf(fam.home)}, with no other copies to tidy away.</Text>
-        <Button key="keep-back" label="Back" plain onPress={() => void setView($, 'changes')} />
+        <Button key="keep-back" label="back" hotkey="b" plain onPress={() => void setView($, 'changes')} />
       </Box>
     )
   }
@@ -2919,7 +2931,7 @@ function clearView($: EngineInterface, ctx: Ctx): RenderNode {
   return (
     <Box flexDirection="column" {...(ctx.isCompact ? {} : { borderStyle: 'round', borderColor: pal.error, paddingX: 1 })}>
       <Text wrap="wrap">
-        Forget every saved version of the documents in this folder? Your documents themselves aren’t touched; Panda Redline starts again from them as they are now.
+        Forget every saved version of the documents in this folder? Your documents themselves aren’t touched; Claude Code Track Changes starts again from them as they are now.
       </Text>
       <Box flexDirection="row" columnGap={2}>
         <Button key="clear-yes" label="Clear versions" hotkey="y" variant="primary" onPress={() => void clearAll($)} />

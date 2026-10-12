@@ -1,5 +1,5 @@
 // Copyright (c) 2026 Parag Pandya. MIT License, see LICENSE.
-// Panda Redline: https://github.com/paragpandyareal/panda-redline
+// Claude Code Track Changes: https://github.com/paragpandyareal/claude-code-track-changes
 // Based on Lazy Panda Panel: https://github.com/paragpandyareal/lazy-panda-panel
 
 /** A run of text inside a row with its emphasis: bold, italic, code, link, strike, dim. */
@@ -102,6 +102,8 @@ export type PaneState = {
   cell: string | null
   /** The list of changes shown in full, rather than one line. */
   isListOpen: boolean
+  /** The quieter tools (side by side, history, versions, settings) shown under the view. */
+  isMoreOpen: boolean
   /** The comment box is open on the focused change. */
   isCommenting: boolean
 }
@@ -134,7 +136,7 @@ export type RedlineComment = {
 
 declare module 'claude-code' {
   interface PluginState {
-    'panda-redline': {
+    'track-changes': {
       pane: PaneState
       /** Bumped when the saved versions change, so the pane draws again. */
       tick: number

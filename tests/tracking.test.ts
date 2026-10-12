@@ -1,5 +1,5 @@
 // Copyright (c) 2026 Parag Pandya. MIT License, see LICENSE.
-// Panda Redline: https://github.com/paragpandyareal/panda-redline
+// Claude Code Track Changes: https://github.com/paragpandyareal/claude-code-track-changes
 // Based on Lazy Panda Panel: https://github.com/paragpandyareal/lazy-panda-panel
 import { expect, test } from 'claude-code/testing'
 
@@ -41,7 +41,7 @@ test('versions are kept in the plugin’s own folder, never in the project', asy
   await start($)
   await claudeTurn($, () => disk.put('/w/plan.md', '# Plan v2\n'))
   const written = [...disk.files.keys()].filter(p => !['/w/plan.md'].includes(p))
-  expect(written.every(p => p.startsWith('/home/u/.claude/panda-redline/'))).toBe(true)
+  expect(written.every(p => p.startsWith('/home/u/.claude/track-changes/'))).toBe(true)
 })
 
 test('an edit in place becomes the next version of that file, shown as Claude’s', async ($, on) => {

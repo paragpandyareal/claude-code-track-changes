@@ -1,5 +1,5 @@
 // Copyright (c) 2026 Parag Pandya. MIT License, see LICENSE.
-// Panda Redline: https://github.com/paragpandyareal/panda-redline
+// Claude Code Track Changes: https://github.com/paragpandyareal/claude-code-track-changes
 // Based on Lazy Panda Panel: https://github.com/paragpandyareal/lazy-panda-panel
 
 import type { RedlineComment } from '../types'
@@ -38,7 +38,7 @@ export const shortPath = (path: string, folder?: string) => (folder && path.star
 // ── The prompt ──
 
 /** The first line of every prompt the pane sends; how its own prompts are recognised. */
-export const PROMPT_HEADER = 'Panda Redline feedback:'
+export const PROMPT_HEADER = 'Claude Code Track Changes feedback:'
 
 const MAX_EXCERPT = 1200
 const MAX_FEEDBACK = 4000

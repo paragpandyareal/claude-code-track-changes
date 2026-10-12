@@ -1,5 +1,5 @@
 // Copyright (c) 2026 Parag Pandya. MIT License, see LICENSE.
-// Panda Redline: https://github.com/paragpandyareal/panda-redline
+// Claude Code Track Changes: https://github.com/paragpandyareal/claude-code-track-changes
 // Based on Lazy Panda Panel: https://github.com/paragpandyareal/lazy-panda-panel
 
 import type { ClientKeyEvent, ClientModule } from 'claude-code'
@@ -72,11 +72,11 @@ const Changes: ClientModule<ChangesProps, Local> = (props, surface) => {
       case 'add':
         return { color: pal.text, backgroundColor: isGlowing ? pal.glowBg : pal.addedBg, underline: true }
       case 'mdel':
-        return { color: pal.error, bold: true }
+        return { color: pal.error }
       case 'madd':
-        return { color: pal.success, bold: true }
+        return { color: pal.success }
       case 'mmod':
-        return { color: pal.warning, bold: true }
+        return { color: pal.warning }
       case 'h1':
       case 'h2':
         return { color: pal.accent, bold: true }
@@ -94,7 +94,7 @@ const Changes: ClientModule<ChangesProps, Local> = (props, surface) => {
       case 'sep':
         return { color: pal.dim }
       case 'head':
-        return { color: pal.subtle, bold: true }
+        return { color: pal.dim }
       case 'fold':
         return { color: pal.accent, italic: true }
       case 'dim':
@@ -121,7 +121,7 @@ const Changes: ClientModule<ChangesProps, Local> = (props, surface) => {
             const isGlowing = glow > 0 && row.change !== undefined && fresh.has(row.change)
             return (
               <Text key={`r${i}`} wrap="truncate-end">
-                <Text color={isGlowing ? pal.success : pal.accent} bold>{isFocus ? '▌' : isGlowing ? '▏' : ' '}</Text>
+                <Text color={isGlowing ? pal.success : pal.accent}>{isFocus ? '▎' : isGlowing ? '▏' : ' '}</Text>
                 {row.segs.map((seg, k) => (
                   <Text key={`s${k}`} {...look(seg.k, isGlowing)}>
                     {seg.t}
@@ -134,8 +134,8 @@ const Changes: ClientModule<ChangesProps, Local> = (props, surface) => {
         {hasBar && (
           <Box flexDirection="column">
             {props.rows.map((_, i) => (
-              <Text key={`b${i}`} color={i >= thumbAt && i < thumbAt + thumb ? pal.accent : pal.dim}>
-                {i >= thumbAt && i < thumbAt + thumb ? '┃' : '│'}
+              <Text key={`b${i}`} color={pal.dim}>
+                {i >= thumbAt && i < thumbAt + thumb ? '┃' : ' '}
               </Text>
             ))}
           </Box>
@@ -144,7 +144,7 @@ const Changes: ClientModule<ChangesProps, Local> = (props, surface) => {
       {props.below ? (
         <Text color={pal.subtle} wrap="truncate-end">
           {'  '}
-          <Text color={pal.accent}>▼</Text> {props.below}
+          ▾ {props.below}
         </Text>
       ) : null}
     </Box>

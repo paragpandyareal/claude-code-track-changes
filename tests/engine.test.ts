@@ -1,5 +1,5 @@
 // Copyright (c) 2026 Parag Pandya. MIT License, see LICENSE.
-// Panda Redline: https://github.com/paragpandyareal/panda-redline
+// Claude Code Track Changes: https://github.com/paragpandyareal/claude-code-track-changes
 // Based on Lazy Panda Panel: https://github.com/paragpandyareal/lazy-panda-panel
 import { expect, test } from 'claude-code/testing'
 
@@ -236,7 +236,7 @@ test('no line is ever wider than the pane, inline or side by side, at any width'
   }
 })
 
-test('grids: changed cells show the old value struck and the new one, cells line up, removed rows marked', () => {
+test('grids: inline a changed cell shows its new value, side by side the old one struck; cells line up, removed rows marked', () => {
   const before = sheet('S', [['Item', 'Cost'], ['Rent', 100], ['Pay', 50], ['Gone', 1]])
   const after = sheet('S', [['Item', 'Cost'], ['Rent', 120], ['Pay', 50]])
   const cmp = compareGrids([before], [after])
@@ -245,7 +245,8 @@ test('grids: changed cells show the old value struck and the new one, cells line
       const laid = layoutGrid(cmp.sheets[0]!, 0, changesOf(cmp), { width, mode, open: new Set(), left: 0, picked: null })
       for (const row of laid.rows) expect(strWidth(row.segs.map(s => s.t).join(''))).toBeLessThanOrEqual(width)
       const rent = laid.rows.find(r => r.segs.some(s => s.t.includes('120')))!
-      expect(rent.segs.some(s => s.k === 'del' && s.t.includes('100') && mode === 'inline') || mode === 'side').toBe(true)
+      expect(rent.segs.some(s => s.k === 'add' && s.t.includes('120'))).toBe(true)
+      expect(rent.segs.some(s => s.k === 'del' && s.t.includes('100'))).toBe(mode === 'side')
       expect(laid.rows.some(r => r.segs.some(s => s.k === 'mdel'))).toBe(true)
     }
   }

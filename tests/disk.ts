@@ -1,5 +1,5 @@
 // Copyright (c) 2026 Parag Pandya. MIT License, see LICENSE.
-// Panda Redline: https://github.com/paragpandyareal/panda-redline
+// Claude Code Track Changes: https://github.com/paragpandyareal/claude-code-track-changes
 // Based on Lazy Panda Panel: https://github.com/paragpandyareal/lazy-panda-panel
 import { mock } from 'claude-code/testing'
 import type { test } from 'claude-code/testing'
@@ -20,7 +20,7 @@ const unbase64 = (text: string) => {
 /**
  * A disk in memory for the tests: files with bytes and a modification time,
  * folders made as files are written, links, files held open by another app,
- * and the commands Panda Redline runs (openssl, mkdir, mv) done on it.
+ * and the commands Claude Code Track Changes runs (openssl, mkdir, mv) done on it.
  */
 export class Disk {
   files = new Map<string, { bytes: Uint8Array; mtime: number }>()
@@ -77,7 +77,7 @@ export class Disk {
 /** On Linux the test kit sees "C:/x" as relative and puts its own folder first: the Windows path is what follows. */
 const fix = (path: string) => path.replace(/^.*?(?=[A-Za-z]:\/)/, '')
 
-/** The mocks Panda Redline needs, all answered from the disk. Starts the session in /w. */
+/** The mocks Claude Code Track Changes needs, all answered from the disk. Starts the session in /w. */
 export function mount(on: On, disk: Disk, options: { store?: Record<string, unknown>; env?: Record<string, string>; onLog?: (text: string) => void; onSubmit?: (text: string, context: readonly string[]) => void; box?: string } = {}) {
   mock.store(on, options.store ?? {})
   const env: Record<string, string> = { HOME: '/home/u', ...(options.env ?? {}) }
@@ -146,8 +146,8 @@ export function mount(on: On, disk: Disk, options: { store?: Record<string, unkn
     }
     if (argv[0] === 'powershell.exe') {
       const env = (e as { env?: Record<string, string>; init?: { env?: Record<string, string> } }).env ?? (e as { init?: { env?: Record<string, string> } }).init?.env ?? {}
-      const from = slashes(env.PANDA_REDLINE_FROM ?? '')
-      const to = slashes(env.PANDA_REDLINE_TO ?? '')
+      const from = slashes(env.TRACK_CHANGES_FROM ?? '')
+      const to = slashes(env.TRACK_CHANGES_TO ?? '')
       if (disk.locked.has(from)) return { value: { exitCode: 1, stdout: '', stderr: 'The process cannot access the file because it is being used by another process.' } }
       disk.move(from, to)
       return { value: { exitCode: 0, stdout: '', stderr: '' } }
@@ -186,12 +186,12 @@ export async function claudeTurn($: Engine, work: () => void | Promise<void>, re
 
 /** The tracking record as saved. */
 export function indexOf(disk: Disk) {
-  const path = [...disk.files.keys()].find(p => p.startsWith('/home/u/.claude/panda-redline/projects/') && p.endsWith('/index.json'))
+  const path = [...disk.files.keys()].find(p => p.startsWith('/home/u/.claude/track-changes/projects/') && p.endsWith('/index.json'))
   return path ? JSON.parse(disk.text(path)!) : undefined
 }
 
 export const PANE = {
   component: 'Pane',
   requestId: 'redline',
-  props: { title: 'Panda Redline', isFocused: true, bodyColumns: 100, placement: 'dock', scroll: { offset: 0, bodyRows: 34 }, view: {} },
+  props: { title: 'Claude Code Track Changes', isFocused: true, bodyColumns: 100, placement: 'dock', scroll: { offset: 0, bodyRows: 34 }, view: {} },
 } as const

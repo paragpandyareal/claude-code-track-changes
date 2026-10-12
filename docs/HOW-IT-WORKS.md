@@ -1,6 +1,6 @@
-# How Panda Redline works
+# How Claude Code Track Changes works
 
-Panda Redline is a Claude Code **mod**: a plugin made of function hooks (TypeScript that runs inside Claude Code). It notes your documents when Claude's turn starts and when it ends, works out what changed, and draws the changes in a pane. It started from [Lazy Panda Panel](https://github.com/paragpandyareal/lazy-panda-panel) and shares its document readers.
+Claude Code Track Changes is a Claude Code **mod**: a plugin made of function hooks (TypeScript that runs inside Claude Code). It notes your documents when Claude's turn starts and when it ends, works out what changed, and draws the changes in a pane. It started from [Lazy Panda Panel](https://github.com/paragpandyareal/lazy-panda-panel) and shares its document readers.
 
 ## The loop
 
@@ -51,7 +51,7 @@ Nothing goes into Claude's context on a normal turn. The tracking is all local.
 
 ## What's kept
 
-`<Claude config>/panda-redline/projects/<folder>-<key>/`:
+`<Claude config>/track-changes/projects/<folder>-<key>/`:
 
 - `index.json`: the record. `files` (each tracked file as last seen: content key, size, time, family), `families` (each document: its name, its home file, every file it has been, its versions in order), `versions` (path, content key or null when deleted, size, time, who: claude, you, first, restore, keep, example), `turns` (each of Claude's turns: when, how it ended, and for each document the version before and after), `answers` (to "is this a new version of that?"), `asks` (questions waiting).
 - `store/<ab>/<key>.<n>`: each content, as base64, in pieces of at most 3 MB so a mod can read them back. A content is written once; letting it go empties it.
@@ -70,9 +70,9 @@ Nothing goes into Claude's context on a normal turn. The tracking is all local.
 
 ## The pane
 
-- `ui.render` draws: the top bar, the versions line (Before ▾ → After ▾, by whom), the question if there is one, the summary, sheet tabs, the changes view, the formula line, the list of changes, the comment box, the actions and the keys.
+- `ui.render` draws, quietly: the top bar (name, then a dim `13 changes · 6.54am → 7.11am · by Claude`), the question on one line if there is one, sheet tabs (only when more than one sheet changed), the changes view, the formula line, the change you're on, the comment box, and one footer line of keys. **m** opens the rest under it: the summary, the other tools, the versions compared, settings and the legend.
 - Hotkeys are Buttons' `hotkey`s: they work whenever the pane holds the keyboard. `/redline` asks for the keys a moment after the command finishes (while it runs, the prompt still holds its text).
-- Short panes drop the extras before the changes: under 26 rows, no borders or key hints; under 16, the versions line folds into the summary and the question waits for a taller pane.
+- Short panes drop the extras before the changes: under 26 rows, no spacing or legend; under 16, no footer and the question waits for a taller pane.
 - The view opens at the first change. Comparisons and layouts are cached by content and width.
 
 ## Restore and keep
@@ -84,7 +84,7 @@ Nothing goes into Claude's context on a normal turn. The tracking is all local.
 ## Developing
 
 ```bash
-claude --plugin-dir /path/to/panda-redline   # hot-reloads as you save
+claude --plugin-dir /path/to/track-changes   # hot-reloads as you save
 claude plugin validate --strict .
 claude plugin test .
 node <typescript>/bin/tsc --noEmit -p .        # once Claude Code has written .claude-plugin/types/

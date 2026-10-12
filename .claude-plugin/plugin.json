@@ -1,16 +1,19 @@
 {
-  "name": "panda-redline",
-  "displayName": "Panda Redline",
-  "version": "0.1.0",
+  "name": "track-changes",
+  "displayName": "Claude Code Track Changes",
+  "version": "0.2.0",
   "description": "Track changes for everything Claude edits. See what Claude changed in your Excel, Word, PDF, Markdown, Confluence, HTML, CSV and text files, in red and green, and put any version back. Nothing to install (documents over 4 MB need Python 3).",
   "author": {
     "name": "Parag Pandya",
     "url": "https://github.com/paragpandyareal"
   },
-  "homepage": "https://github.com/paragpandyareal/panda-redline",
-  "repository": "https://github.com/paragpandyareal/panda-redline",
+  "homepage": "https://github.com/paragpandyareal/claude-code-track-changes",
+  "repository": "https://github.com/paragpandyareal/claude-code-track-changes",
   "license": "MIT",
   "keywords": [
+    "claude-code",
+    "claude-code-plugin",
+    "redline",
     "track-changes",
     "versions",
     "changes",
@@ -24,8 +27,8 @@
     "mod"
   ],
   "types": "./types/index.d.ts",
-  "privacyPolicyUrl": "https://github.com/paragpandyareal/panda-redline/blob/main/PRIVACY.md",
-  "documentationUrl": "https://github.com/paragpandyareal/panda-redline#readme",
-  "supportUrl": "https://github.com/paragpandyareal/panda-redline/issues",
-  "termsOfServiceUrl": "https://github.com/paragpandyareal/panda-redline/blob/main/LICENSE"
+  "privacyPolicyUrl": "https://github.com/paragpandyareal/claude-code-track-changes/blob/main/PRIVACY.md",
+  "documentationUrl": "https://github.com/paragpandyareal/claude-code-track-changes#readme",
+  "supportUrl": "https://github.com/paragpandyareal/claude-code-track-changes/issues",
+  "termsOfServiceUrl": "https://github.com/paragpandyareal/claude-code-track-changes/blob/main/LICENSE"
 }

@@ -1,5 +1,5 @@
 // Copyright (c) 2026 Parag Pandya. MIT License, see LICENSE.
-// Panda Redline: https://github.com/paragpandyareal/panda-redline
+// Claude Code Track Changes: https://github.com/paragpandyareal/claude-code-track-changes
 // Based on Lazy Panda Panel: https://github.com/paragpandyareal/lazy-panda-panel
 
 import type { DocRow, GridCell } from '../types'
@@ -282,7 +282,8 @@ function cellSegs(sheet: SheetComparison, rowOp: GridOp, rowIndex: number, col: 
   }
   if (side === 'before') return { segs: [{ t: before.v || '(empty)', k: 'del' }], changed: true }
   if (side === 'after') return { segs: [{ t: after.v || '(empty)', k: 'add' }], changed: true }
-  return { segs: [...(before.v ? [{ t: before.v, k: 'del' as const }, { t: ' ' }] : []), { t: after.v || '(empty)', k: 'add' }], changed: true }
+  // Inline, the cell holds the new value only, so the columns stay readable; the old one is in the change line.
+  return { segs: [{ t: after.v || '(empty)', k: 'add' }], changed: true }
 }
 
 const segWidth = (segs: Seg[]) => segs.reduce((n, s) => n + strWidth(s.t), 0)
