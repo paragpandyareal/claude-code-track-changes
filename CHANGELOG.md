@@ -2,7 +2,7 @@
 
 ## 0.2.0 (2026-10-12)
 
-- **New name:** Panda Redline is now **Claude Code Track Changes** (`track-changes`). The command is still `/redline`. Saved versions now live in `~/.claude/track-changes`.
+- **New name:** Panda Redline is now **Claude Code Track Changes** (plugin `track-changes`). The command is now `/track-changes` (was `/redline`). Saved versions now live in `~/.claude/track-changes`.
 - **A quieter pane:** one header line (the file, how many changes, when, by whom); colour only on what changed; the change you're on and one line of keys at the bottom (`n` `p` `c` `m`, `r` restore, `k` keep).
 - **`m: more`** holds the rest: the summary, side by side, history, the list, the next document, formulas, versions compared, settings and the colour key.
 - **Spreadsheets inline** show a changed cell's new value; its old → new value is under the sheet. Side by side still shows both.
@@ -20,6 +20,6 @@ First version.
 - **Telling Claude:** a one-line note after a restore or keep, with your next message or at once.
 - **Notices and auto-open:** a line in the transcript Claude never sees (on), the pane opening by itself (off).
 - **Settings:** retention (20 versions or 7 days), space used and clearing.
-- **`/redline examples`:** a sample folder with a budget saved as a new file, a Word report, a Markdown plan and a CSV.
+- **`/track-changes examples`:** a sample folder with a budget saved as a new file, a Word report, a Markdown plan and a CSV.
 - Nothing to install; documents over 4 MB need Python 3.
 - Started from Lazy Panda Panel 0.9.4 (https://github.com/paragpandyareal/lazy-panda-panel), same author, MIT licence; its document readers are shared.

@@ -13,7 +13,7 @@ See exactly what changed, in red and green, without opening a file or comparing 
 [![Claude Code mod](https://img.shields.io/badge/Claude%20Code-mod-2DD4BF)](#install)
 [![Linux · macOS · Windows](https://img.shields.io/badge/runs%20on-Linux%20·%20macOS%20·%20Windows-F472B6)](#install)
 
-[![Claude edits a budget, /redline shows every change in red and green, then a Word report reads like track changes. Click to watch the 14-second demo.](docs/images/cover.png)](docs/demo.mp4)<br>
+[![Claude edits a budget, /track-changes shows every change in red and green, then a Word report reads like track changes. Click to watch the 14-second demo.](docs/images/cover.png)](docs/demo.mp4)<br>
 <sub>▶ Click to watch the 14-second demo</sub>
 
 </div>
@@ -22,9 +22,9 @@ See exactly what changed, in red and green, without opening a file or comparing 
 
 **1. Claude edits your documents as usual.** Claude Code Track Changes notes your documents when Claude starts, and again when it finishes. You don't do anything.
 
-**2. A short note tells you what changed.** After Claude's turn you see a dim line in the conversation, such as *plan.md has 2 changes. /redline to see them*. Claude never sees it.
+**2. A short note tells you what changed.** After Claude's turn you see a dim line in the conversation, such as *plan.md has 2 changes. /track-changes to see them*. Claude never sees it.
 
-**3. Type `/redline` to see the changes.** Removed words are struck through in red, added words underlined in green, just like track changes in Word. Press **n** and **p** to step through every change.
+**3. Type `/track-changes` to see the changes.** Removed words are struck through in red, added words underlined in green, just like track changes in Word. Press **n** and **p** to step through every change.
 
 ![A budget in the pane: a row added, changed cells underlined in green, and the change you're on, 9,500 → 6,000, under the sheet](docs/images/excel.png)
 
@@ -86,22 +86,22 @@ If it asks to add the marketplace, answer **y**. If it asks where to install it,
 **3. Try it.**
 
 ```
-/redline examples
+/track-changes examples
 ```
 
 **Nothing else to install.** Documents up to 4 MB are tracked straight away, on Windows, macOS and Linux.
 
-> **One limitation to know before you start: documents over 4 MB need Python 3.** Claude Code lets a mod read files of up to 4 MB itself. For bigger documents (up to 50 MB), Track Changes needs Python 3 on your computer, used only to read the file's bytes. Without it, a big document isn't tracked, and Track Changes says so in a plain line after Claude's turn, so you're never left thinking it was. Run `/redline setup` to check. It installs nothing; if you want Python, ask Claude to help you install it.
+> **One limitation to know before you start: documents over 4 MB need Python 3.** Claude Code lets a mod read files of up to 4 MB itself. For bigger documents (up to 50 MB), Track Changes needs Python 3 on your computer, used only to read the file's bytes. Without it, a big document isn't tracked, and Track Changes says so in a plain line after Claude's turn, so you're never left thinking it was. Run `/track-changes setup` to check. It installs nothing; if you want Python, ask Claude to help you install it.
 
 ## Use it
 
 | To… | Do this |
 |---|---|
-| See what Claude just changed | `/redline` |
-| See one document's last changes | `/redline budget.xlsx` (any of its file names works) |
+| See what Claude just changed | `/track-changes` |
+| See one document's last changes | `/track-changes budget.xlsx` (any of its file names works) |
 | Step through the changes | **n** next, **p** previous, or click a change |
 | See the other tools | **m** (more): the summary, side by side, history, the list, versions, settings and the colour key. **m** again hides them. |
-| See a document's timeline | `/redline history budget.xlsx`, or **m** then **h**. **b** goes back. |
+| See a document's timeline | `/track-changes history budget.xlsx`, or **m** then **h**. **b** goes back. |
 | List every change | **m** then **l** |
 | Switch documents | **m** then **d**, or click ‹ › at the top. When Claude changed several documents in one turn, each has its own changes. |
 | Inline or side by side | **m** then **v**. Inline is the default, and side by side is picked for you on wide panes. |
@@ -113,11 +113,11 @@ If it asks to add the marketplace, answer **y**. If it asks where to install it,
 | Tell Claude what's wrong | Step to the change, press **c**, type, press Enter, then **➤ Send to Claude** |
 | Open the file | **m** then **o** (open in Excel, Word, your browser…) |
 | Give the keys back to Claude's prompt | **Esc** |
-| Settings | `/redline settings`, or **m** then ⚙ settings |
+| Settings | `/track-changes settings`, or **m** then ⚙ settings |
 
 The pane stays quiet: the file name and how many changes on one line, the document, the change you're on, and one line of keys. Everything else waits under **m**.
 
-When you type `/redline`, the pane takes the keyboard so the letter keys work at once. **Esc** hands it back.
+When you type `/track-changes`, the pane takes the keyboard so the letter keys work at once. **Esc** hands it back.
 
 ### Restore
 
@@ -161,12 +161,12 @@ Track Changes feedback: these are comments on changes you made. Edit the file to
 
 | Setting | Default | What it does |
 |---|---|---|
-| Notice after Claude's turn | On | The dim line in the conversation (Claude never sees it). Also `/redline notices on/off`. |
-| Open this pane by itself | Off | Opens the pane when Claude changes documents. Also `/redline auto on/off`. |
-| Tell Claude about a restore | With my next message | Or straight away. Also `/redline tell next/now`. |
+| Notice after Claude's turn | On | The dim line in the conversation (Claude never sees it). Also `/track-changes notices on/off`. |
+| Open this pane by itself | Off | Opens the pane when Claude changes documents. Also `/track-changes auto on/off`. |
+| Tell Claude about a restore | With my next message | Or straight away. Also `/track-changes tell next/now`. |
 | Versions kept per document | 20 | Older ones are let go. |
 | Days kept | 7 | Whichever comes first. The newest version of each document is always kept, and so is the one just before the oldest change still kept, so every change shown still has its before. |
-| Space used | | How much the saved versions take, and **Clear this folder's versions**. Also `/redline space`. |
+| Space used | | How much the saved versions take, and **Clear this folder's versions**. Also `/track-changes space`. |
 
 ## Where versions are kept
 
@@ -180,10 +180,10 @@ Each working folder has a folder of its own there. Each file's content is stored
 
 ## Example prompts
 
-1. **See it in ten seconds.** Type `/redline examples`. It writes a sample folder and shows "Claude's" changes to a budget (saved as a new file, `budget_v2.xlsx`), a Word report, a Markdown plan and a CSV.
-2. **Make a change, then check it.** Ask Claude: *"In the budget, cut Q2 marketing by 20% and add an insurance line."* Then `/redline`.
-3. **Undo Claude.** After a change you don't like, `/redline`, then **r**.
-4. **Tidy up copies.** When Claude saved `report_final.docx`, `/redline`, then **k** to make it `report.docx` again.
+1. **See it in ten seconds.** Type `/track-changes examples`. It writes a sample folder and shows "Claude's" changes to a budget (saved as a new file, `budget_v2.xlsx`), a Word report, a Markdown plan and a CSV.
+2. **Make a change, then check it.** Ask Claude: *"In the budget, cut Q2 marketing by 20% and add an insurance line."* Then `/track-changes`.
+3. **Undo Claude.** After a change you don't like, `/track-changes`, then **r**.
+4. **Tidy up copies.** When Claude saved `report_final.docx`, `/track-changes`, then **k** to make it `report.docx` again.
 
 ## Limits and known issues
 
@@ -214,9 +214,9 @@ Each working folder has a folder of its own there. Each file's content is stored
 
 | Problem | What to do |
 |---|---|
-| `/redline` does nothing, or the command doesn't exist | Run `/reload-plugins` (or restart Claude Code). Check `track-changes` is enabled in `/plugin`. |
+| `/track-changes` does nothing, or the command doesn't exist | Run `/reload-plugins` (or restart Claude Code). Check `track-changes` is enabled in `/plugin`. |
 | "No changes from Claude yet" after Claude edited a file | Is it one of the tracked types, inside the working folder? Over 4 MB without Python? The line after Claude's turn says why a file couldn't be kept. |
-| Letter keys type into the prompt instead | Type `/redline` again: it gives the pane the keys. **Esc** gives them back. |
+| Letter keys type into the prompt instead | Type `/track-changes` again: it gives the pane the keys. **Esc** gives them back. |
 | A new file wasn't matched to its document | Answer the question in the pane, or **Pick another**. |
 | Restore or Keep says a file is open in another app | Close it in Excel or Word and try again. |
 | Something else | Open an issue (see [Support](#support)) with your Claude Code version, operating system and terminal. |
@@ -233,8 +233,8 @@ Track Changes is a Claude Code *mod*: code that runs inside Claude Code with you
 | Empties stored copies that are no longer kept | After each of Claude's turns, and when you clear | Retention (20 versions, 7 days by default) |
 | Writes one of your documents | **Only when you press Restore or Keep this version**, and only that document | To put the version you chose back |
 | Moves copies of a document into an `Older versions` folder next to it | **Only when you press Keep this version**, after showing you exactly what will move | So nothing is deleted |
-| Writes a sample folder | Only on `/redline examples` | A demo |
-| Runs your computer's own tools to write Word, Excel and PDF files and to move files (listed below) | Only for Restore, Keep this version and `/redline examples` | A mod can only write text files |
+| Writes a sample folder | Only on `/track-changes examples` | A demo |
+| Runs your computer's own tools to write Word, Excel and PDF files and to move files (listed below) | Only for Restore, Keep this version and `/track-changes examples` | A mod can only write text files |
 | Runs your computer's "open this file" command | Only when you press **Open in …** | To open the file in its app |
 | Runs Python, only if it's on your computer, with the bundled `scripts/read_file.py` | Only for documents over 4 MB | Claude Code reads at most 4 MB for a mod |
 | Shows a dim line in the conversation, never sent to Claude | After Claude's turn changed documents (turn off in settings) | So you know |
@@ -251,8 +251,8 @@ This section is for anyone reviewing the code. Everything below is in `hooks/reg
 
 | Hook | What it does with what it sees |
 |---|---|
-| `session.start` | Registers `/redline`, reads its settings and the five environment variables below, and the first time in a folder, notes the documents there (nothing is shown for that first look) |
-| `command.run` for `redline` only | Answers its own `/redline` command. It doesn't see or change other commands. |
+| `session.start` | Registers `/track-changes`, reads its settings and the five environment variables below, and the first time in a folder, notes the documents there (nothing is shown for that first look) |
+| `command.run` for `track-changes` only | Answers its own `/track-changes` command. It doesn't see or change other commands. |
 | `prompt.submit` | Only when a note about a restore or keep is waiting and you've chosen "with my next message": adds that note as context beside the prompt, for that one prompt. **It never changes the text you typed.** It doesn't do this for slash commands or for prompts other plugins send. |
 | `turn.start` | Notes the working folder before Claude does anything, so only Claude's changes are shown as Claude's |
 | `tool.call` for `Write`, `Edit`, `NotebookEdit` and `Bash` | Waits until the turn's start has been noted, notes the path a Write or Edit names (so a file deeper than 3 levels is watched too), then passes the call on unchanged |
@@ -279,14 +279,14 @@ Every write is read back and checked against what was meant. Text documents (val
 - your comments, through `$.prompt.submit` (Send) or `$.prompt.fill` (Edit before sending, which only fills the prompt box);
 - nothing else.
 
-**What it writes.** Its own folder in Claude Code's settings folder (versions and their record); `/redline examples`' sample folder; and, only when you press Restore or Keep this version, that document and its `Older versions` folder. It keeps three things in Claude Code's plugin store: its settings, a note waiting to go to Claude, and whether you've seen the welcome message. It never writes build, start-up, settings or instruction files.
+**What it writes.** Its own folder in Claude Code's settings folder (versions and their record); `/track-changes examples`' sample folder; and, only when you press Restore or Keep this version, that document and its `Older versions` folder. It keeps three things in Claude Code's plugin store: its settings, a note waiting to go to Claude, and whether you've seen the welcome message. It never writes build, start-up, settings or instruction files.
 
 **Credentials.** It reads none. It reads five environment variables, none of them secret: `CLAUDE_CONFIG_DIR`, `HOME` and `USERPROFILE` (where Claude Code's settings folder is), and `DISPLAY` and `WAYLAND_DISPLAY` (does this Linux have a desktop for **Open in …**). It has no `user_config`.
 
 **The `tests/` folder** holds the automated tests, run with `claude plugin test`. Claude Code never loads them when you use the plugin. They simulate Claude Code with mock disks and programs.
 
 ### Things to know
-- **Copies of your documents are kept on your computer**, in Track Changes' own folder, for as long as the settings say (20 versions or 7 days by default). Clear them any time with `/redline space`. They are never sent anywhere.
+- **Copies of your documents are kept on your computer**, in Track Changes' own folder, for as long as the settings say (20 versions or 7 days by default). Clear them any time with `/track-changes space`. They are never sent anywhere.
 - **Documents can contain text written to trick an AI.** Quoted text in comments is fenced and marked as data, which helps, but no fence is perfect. For files from people you don't know, use **Edit before sending** and read the prompt first.
 
 ## Privacy
@@ -307,7 +307,7 @@ Full policy: [Privacy policy](PRIVACY.md).
 
 1. Run `/plugin uninstall track-changes`.
 2. Run `/plugin marketplace remove claude-code-track-changes`.
-3. Delete Track Changes' folder of saved versions: `~/.claude/track-changes` (on Windows, `%USERPROFILE%\.claude\track-changes`). Run `/redline space` first if you'd like to see how big it is.
+3. Delete Track Changes' folder of saved versions: `~/.claude/track-changes` (on Windows, `%USERPROFILE%\.claude\track-changes`). Run `/track-changes space` first if you'd like to see how big it is.
 4. Delete any `track-changes-examples` folders you made.
 
 Your documents and any `Older versions` folders are yours, and stay.

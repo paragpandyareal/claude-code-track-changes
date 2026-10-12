@@ -16,7 +16,7 @@ Claude Code Track Changes is a Claude Code **mod**: a plugin made of function ho
           (a new file is matched to the document it came from, or asked)
                          │
                          ▼
-          dim line in the transcript ("plan.md has 2 changes") ──► /redline
+          dim line in the transcript ("plan.md has 2 changes") ──► /track-changes
                          │
                          ▼
           compare before ↔ after ──► lay out ──► draw (inline or side by side)
@@ -39,7 +39,7 @@ Nothing goes into Claude's context on a normal turn. The tracking is all local.
 | `hooks/csv.ts` | **Pure:** CSV and TSV as a sheet, quotes the RFC 4180 way |
 | `hooks/hash.ts` | **Pure:** content keys, so each content is stored once |
 | `hooks/model.ts` | **Pure:** paths in one form, the comment prompt with its fence, the note's file names |
-| `hooks/officegen.ts` | **Pure:** small real `.xlsx` and `.docx` files for `/redline examples` |
+| `hooks/officegen.ts` | **Pure:** small real `.xlsx` and `.docx` files for `/track-changes examples` |
 | `hooks/changes.tsx` | Drawing thread (a `Client` module): the changes view. Draws the lines in view, a focus bar, a scrollbar, and the glow for new changes; posts clicks and keys back |
 | `hooks/filebar.tsx` | Drawing thread: the top bar, with the document's badge, name, ‹ n/N › and switches (from Lazy Panda Panel) |
 | `hooks/spinner.tsx` | Drawing thread: "Claude is working on N comments…" |
@@ -71,7 +71,7 @@ Nothing goes into Claude's context on a normal turn. The tracking is all local.
 ## The pane
 
 - `ui.render` draws, quietly: the top bar (name, then a dim `13 changes · 6.54am → 7.11am · by Claude`), the question on one line if there is one, sheet tabs (only when more than one sheet changed), the changes view, the formula line, the change you're on, the comment box, and one footer line of keys. **m** opens the rest under it: the summary, the other tools, the versions compared, settings and the legend.
-- Hotkeys are Buttons' `hotkey`s: they work whenever the pane holds the keyboard. `/redline` asks for the keys a moment after the command finishes (while it runs, the prompt still holds its text).
+- Hotkeys are Buttons' `hotkey`s: they work whenever the pane holds the keyboard. `/track-changes` asks for the keys a moment after the command finishes (while it runs, the prompt still holds its text).
 - Short panes drop the extras before the changes: under 26 rows, no spacing or legend; under 16, no footer and the question waits for a taller pane.
 - The view opens at the first change. Comparisons and layouts are cached by content and width.
 

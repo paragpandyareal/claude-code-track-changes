@@ -8,7 +8,7 @@ _Claude Code Track Changes, a Claude Code plugin by Parag Pandya. Last updated 1
 The documents in the folder you run Claude Code in (Excel, Word, PDF, Markdown, Confluence, HTML, CSV and text files), when Claude's turn starts and ends, so it can tell what Claude changed. Those documents can contain personal information. They're read on your own computer. It also reads a few environment variables that say where Claude Code's settings folder is and whether your computer has a desktop (for example `HOME`), never anything personal.
 
 ## What it stores
-- **Copies of your tracked documents**, one per version, in Claude Code Track Changes's own folder inside Claude Code's settings folder on your computer (`~/.claude/track-changes/`, or `%USERPROFILE%\.claude\track-changes\` on Windows). Each content is stored once. Copies are let go after the last 20 versions of a document or 7 days, whichever comes first; you can change both, and clear everything with `/redline space`.
+- **Copies of your tracked documents**, one per version, in Claude Code Track Changes's own folder inside Claude Code's settings folder on your computer (`~/.claude/track-changes/`, or `%USERPROFILE%\.claude\track-changes\` on Windows). Each content is stored once. Copies are let go after the last 20 versions of a document or 7 days, whichever comes first; you can change both, and clear everything with `/track-changes space`.
 - **A record of the versions**: file names, times, who made each version (Claude or you), and your answers to "is this a new version of that?".
 - **Three small settings** in Claude Code's own plugin store: your settings, a note waiting to go to Claude, and whether you've seen the welcome message.
 
@@ -23,7 +23,7 @@ Comments you're writing last for the session only.
 - **Nothing over the network.** The plugin makes no network requests.
 
 ## Retention
-Copies of documents: as set in `/redline settings` (20 versions or 7 days by default), and until you clear them or uninstall. Nothing else is kept beyond the session.
+Copies of documents: as set in `/track-changes settings` (20 versions or 7 days by default), and until you clear them or uninstall. Nothing else is kept beyond the session.
 
 ## Children
 The plugin is not intended for people under 18.

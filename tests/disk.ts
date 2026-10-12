@@ -192,6 +192,6 @@ export function indexOf(disk: Disk) {
 
 export const PANE = {
   component: 'Pane',
-  requestId: 'redline',
+  requestId: 'track-changes',
   props: { title: 'Claude Code Track Changes', isFocused: true, bodyColumns: 100, placement: 'dock', scroll: { offset: 0, bodyRows: 34 }, view: {} },
 } as const

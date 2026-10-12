@@ -5,7 +5,7 @@
 import { crc32 } from './zip'
 
 /**
- * Small, real Excel and Word files built in code, for /redline examples:
+ * Small, real Excel and Word files built in code, for /track-changes examples:
  * a zip of stored parts, a workbook from rows of cells, a document from
  * paragraphs and tables.
  */

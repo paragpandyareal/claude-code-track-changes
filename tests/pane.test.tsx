@@ -41,14 +41,14 @@ test('the empty pane says, in plain words, what will happen', async ($, on) => {
   const text = await shown(ui)
   expect(text).toContain('No changes from Claude yet.')
   expect(text).toContain('it’ll show up here.')
-  expect(text).toContain('/redline examples')
+  expect(text).toContain('/track-changes examples')
 })
 
 test('after Claude’s turn: a notice Claude never sees, the count and times in one line, the summary under more, and the change marked', async ($, on) => {
   const logs: string[] = []
   const disk = await setUp($, on, { '/w/plan.md': '# Plan\n\nBeta opens on 3 November for 200 customers.\n\nFull launch in December.\n' }, { onLog: t => logs.push(t) })
   await claudeTurn($, () => disk.put('/w/plan.md', '# Plan\n\nBeta opens on 10 November for 500 customers.\n\nFull launch in December.\n\nPress release on launch day.\n'))
-  expect(logs).toContain('plan.md has 2 changes. /redline to see it')
+  expect(logs).toContain('plan.md has 2 changes. /track-changes to see it')
   const ui = await draw($)
   const quiet = await shown(ui)
   expect(quiet).toMatch(/2 changes · \S+ → \S+ · by Claude/)
@@ -267,7 +267,7 @@ test('several documents in one turn: step through them, each with its own change
 test('history: every version with its time, who made it and the file', async ($, on) => {
   const disk = await setUp($, on, { '/w/budget.xlsx': BUDGET })
   await claudeTurn($, () => disk.put('/w/budget_v2.xlsx', BUDGET_V2))
-  await $.command.run({ command: 'redline', args: 'history budget.xlsx' })
+  await $.command.run({ command: 'track-changes', args: 'history budget.xlsx' })
   const ui = await draw($)
   const text = await shown(ui)
   expect(text).toContain('budget.xlsx: 2 versions')
@@ -278,7 +278,7 @@ test('history: every version with its time, who made it and the file', async ($,
 
 test('settings: notices, auto-open, how Claude is told, how much is kept, and space used', async ($, on) => {
   await setUp($, on, { '/w/plan.md': 'One.\n' })
-  const ran = await $.command.run({ command: 'redline', args: 'settings' })
+  const ran = await $.command.run({ command: 'track-changes', args: 'settings' })
   expect(String((ran as { text?: unknown }).text)).toMatch(/Saved versions use .* for this folder/)
   const ui = await draw($)
   const text = await shown(ui)
@@ -288,11 +288,11 @@ test('settings: notices, auto-open, how Claude is told, how much is kept, and sp
   expect((await ui.find({ type: 'Button', key: 'set-auto' }))?.text).toContain('● On')
 })
 
-test('/redline examples writes samples, one saved as a new file, and shows Claude’s example changes', async ($, on) => {
+test('/track-changes examples writes samples, one saved as a new file, and shows Claude’s example changes', async ($, on) => {
   const disk = new Disk()
   mount(on, disk)
   await start($)
-  const ran = await $.command.run({ command: 'redline', args: 'examples' })
+  const ran = await $.command.run({ command: 'track-changes', args: 'examples' })
   expect(String((ran as { text?: unknown }).text)).toContain('a budget saved as a new file (budget_v2.xlsx)')
   for (const name of ['budget.xlsx', 'budget_v2.xlsx', 'report.docx', 'plan.md', 'meter-readings.csv']) expect(disk.files.has(`/w/track-changes-examples/${name}`)).toBe(true)
   const ui = await draw($)

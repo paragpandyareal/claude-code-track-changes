@@ -292,7 +292,7 @@ async function isMacWithoutPython($: EngineInterface): Promise<boolean> {
 /**
  * Runs read_file.py with Python 3: python3, then py -3 (the Windows
  * launcher), then python, until one answers. The one that worked is
- * remembered for the session; so is finding none (/redline setup asks again).
+ * remembered for the session; so is finding none (/track-changes setup asks again).
  */
 export async function runPython($: EngineInterface, input: string, timeoutMs: number): Promise<string | 'none' | 'timeout'> {
   if (py.cmd === 'none') return 'none'
@@ -316,7 +316,7 @@ export async function runPython($: EngineInterface, input: string, timeoutMs: nu
 /** A document over 4 MB as base64, through Python; or why it can't be read. */
 export async function readBigBase64($: EngineInterface, path: string): Promise<string | { reason: string }> {
   const out = await runPython($, path, 60_000)
-  if (out === 'none') return { reason: 'it is over 4 MB, and files that size need Python 3 on this computer (run /redline setup to check)' }
+  if (out === 'none') return { reason: 'it is over 4 MB, and files that size need Python 3 on this computer (run /track-changes setup to check)' }
   if (out === 'timeout') return { reason: 'reading it took too long' }
   const newline = out.indexOf('\n')
   const head = newline < 0 ? out : out.slice(0, newline)
@@ -328,7 +328,7 @@ export async function readBigBase64($: EngineInterface, path: string): Promise<s
 
 /**
  * Writing files back, only when the person clicks Restore or Keep this
- * version (and for /redline examples). A mod can write text files only, so
+ * version (and for /track-changes examples). A mod can write text files only, so
  * Word, Excel and PDF files are written by the computer's own tools, run
  * without a shell, with fixed arguments and the file paths as the only
  * variable parts:
@@ -581,7 +581,7 @@ export async function readVersion($: EngineInterface, v: Version): Promise<Doc> 
   const hit = docCache.get(id)
   if (hit) return { ...hit, path: v.path }
   const base64 = await getBlob($, v.key)
-  if (base64 === null) return { kind: 'error', path: v.path, message: 'This version is no longer kept (older versions are let go after a while: see /redline settings).' }
+  if (base64 === null) return { kind: 'error', path: v.path, message: 'This version is no longer kept (older versions are let go after a while: see /track-changes settings).' }
   const doc = await parseBytes(v.path, bytesOf(base64))
   docCache.set(id, doc)
   for (const key of docCache.keys()) if (docCache.size > 12 && key !== id) docCache.delete(key)
@@ -1127,7 +1127,7 @@ export async function clearProject($: EngineInterface) {
 
 // ════ the pane ════
 
-const PANE = 'redline'
+const PANE = 'track-changes'
 const TITLE = 'Track Changes'
 
 const DEFAULT_PANE: PaneState = {
@@ -1676,20 +1676,20 @@ async function afterTurn($: EngineInterface, status: Turn['status']) {
     if (['restore', 'keep', 'clear', 'settings'].includes(p.view) || p.isCommenting) await update($, pane, old => ({ ...old, turn: null, family: null, doc: 0, before: null, after: null }))
     else await showTurn($, null)
     await update($, flash, old => ({ key: old.key + 1, turn: result.turn?.id ?? null, fresh: [] }))
-    if (s.notices) $.ui.log(`${await turnLine($, result.turn)}. /redline to see ${result.turn.changes.length === 1 ? 'it' : 'them'}`)
+    if (s.notices) $.ui.log(`${await turnLine($, result.turn)}. /track-changes to see ${result.turn.changes.length === 1 ? 'it' : 'them'}`)
     if (s.autoOpen) {
       const opened = await openPane($)
-      if (!opened.isPlaced) $.ui.toast('🐼 Claude changed your documents. Type /redline to see what changed.')
+      if (!opened.isPlaced) $.ui.toast('🐼 Claude changed your documents. Type /track-changes to see what changed.')
     }
   }
   if (s.notices) {
-    for (const ask of result.asks) $.ui.log(`Is ${nameOf(ask.path)} a new version of ${nameOf(ask.guess.path)}? /redline to answer`)
+    for (const ask of result.asks) $.ui.log(`Is ${nameOf(ask.path)} a new version of ${nameOf(ask.guess.path)}? /track-changes to answer`)
     for (const skip of result.skipped.slice(0, 3)) $.ui.log(`Couldn’t keep a copy of ${nameOf(skip.path)}: ${skip.reason}`)
   }
   await redraw($)
 }
 
-// ── /redline examples ──
+// ── /track-changes examples ──
 
 type GenRow = (string | number | null | { f: string; v: number })[]
 
@@ -1789,7 +1789,7 @@ async function examples($: EngineInterface, base: string): Promise<string> {
     folder = `${base}-${k}`
   }
   if (!folder.startsWith(`${session.folder}/`)) return `The samples go inside the working folder (${session.folder}), so Claude Code Track Changes can track them.`
-  if (vault.index.running) return 'Claude is working right now. Try /redline examples again when it finishes.'
+  if (vault.index.running) return 'Claude is working right now. Try /track-changes examples again when it finishes.'
   // Before: the documents as they were.
   const names = ['plan.md', 'meter-readings.csv']
   await $.fs.write(`${folder}/plan.md`, PLAN_BEFORE)
@@ -1909,21 +1909,21 @@ export const register: Register = on => {
     await redraw($)
     if ((await $.store.get('welcomed')) !== true) {
       await $.store.set('welcomed', true)
-      $.ui.toast('🐼 Claude Code Track Changes is ready. When Claude edits a document, /redline shows what changed. Try /redline examples. Nothing to install; documents over 4 MB need Python 3.')
+      $.ui.toast('🐼 Claude Code Track Changes is ready. When Claude edits a document, /track-changes shows what changed. Try /track-changes examples. Nothing to install; documents over 4 MB need Python 3.')
     }
     await $.command.register({
-      name: 'redline',
-      description: 'See what Claude changed in your documents: /redline [file] · history <file> · settings · examples',
+      name: 'track-changes',
+      description: 'See what Claude changed in your documents: /track-changes [file] · history <file> · settings · examples',
       argumentHint: '[file | history <file> | settings | examples | space | setup]',
     })
     return started
   })
 
-  on('command.run', { command: 'redline' }, async ($, e) => {
+  on('command.run', { command: 'track-changes' }, async ($, e) => {
     try {
       const args = e.args.trim()
       const word = args.toLowerCase().replace(/\s+/g, ' ')
-      // Only the person changes settings, writes samples or clears versions; another plugin running /redline can't.
+      // Only the person changes settings, writes samples or clears versions; another plugin running /track-changes can't.
       const isPerson = ['composer', 'bridge', undefined].includes(e.origin?.kind as string | undefined)
       if (isHomeOrRoot(session.folder) && word !== 'setup') {
         return { text: 'Claude Code Track Changes doesn’t watch a home folder or a drive’s root (it would copy far too much). Start Claude Code in a project folder and try again.' }
@@ -1950,10 +1950,10 @@ export const register: Register = on => {
         return { text: s ? `Saved versions use ${megabytes(s.here)} for this folder (${megabytes(s.bytes)} in all). The settings are open in the pane.` : 'The settings are open in the pane.' }
       }
       if (word === 'examples' || word.startsWith('examples ')) {
-        if (!isPerson) return { text: 'Only you can write the samples: type /redline examples.', exitCode: 1 }
+        if (!isPerson) return { text: 'Only you can write the samples: type /track-changes examples.', exitCode: 1 }
         const text = await examples($, typedPath(args.slice('examples'.length).trim() || 'track-changes-examples'))
         const opened = await openPane($, true)
-        return { text: opened.isPlaced ? text : `${text} Make the window wider to see the pane, or run /redline again.` }
+        return { text: opened.isPlaced ? text : `${text} Make the window wider to see the pane, or run /track-changes again.` }
       }
       if (word === 'setup') {
         py.cmd = null
@@ -1966,7 +1966,7 @@ export const register: Register = on => {
       if (word === 'history' || word.startsWith('history ')) {
         const name = args.slice('history'.length).trim()
         const fam = name ? familyNamed(name) : shownOf(await read($, pane))?.fam
-        if (!fam) return { text: name ? `Claude Code Track Changes has no versions of ${name} yet.` : 'Name a document: /redline history budget.xlsx', exitCode: 1 }
+        if (!fam) return { text: name ? `Claude Code Track Changes has no versions of ${name} yet.` : 'Name a document: /track-changes history budget.xlsx', exitCode: 1 }
         await showFamily($, fam.id, null, null, 'history')
         await openPane($, isPerson)
         return { text: `${fam.name}: ${plural(fam.versions.length, 'version')}.` }
@@ -1987,14 +1987,14 @@ export const register: Register = on => {
         }
         await showFamily($, fam.id)
       } else {
-        // Plain /redline: the latest changes.
+        // Plain /track-changes: the latest changes.
         await showTurn($, null)
       }
       // Typed by the person: the pane takes the keys, so n and p step through the changes at once (Esc gives them back).
       const opened = await openPane($, isPerson)
-      return { text: opened.isPlaced ? 'Claude Code Track Changes opened.' : 'Claude Code Track Changes needs a wider terminal: make the window wider, or run /redline again.' }
+      return { text: opened.isPlaced ? 'Claude Code Track Changes opened.' : 'Claude Code Track Changes needs a wider terminal: make the window wider, or run /track-changes again.' }
     } catch (failure) {
-      return { text: `/redline ${sanitizeLine(e.args.trim(), 200)} failed: ${errorText(failure)}`, exitCode: 1 }
+      return { text: `/track-changes ${sanitizeLine(e.args.trim(), 200)} failed: ${errorText(failure)}`, exitCode: 1 }
     }
   }).catch(($, e, next) => next(e))
 
@@ -2305,11 +2305,11 @@ function emptyView(ctx: Ctx): RenderNode {
     <>
       <Text wrap="truncate-end">
         <Text color={pal.subtle}>Try it:    </Text>
-        <Text color={pal.accent}>/redline examples</Text>
+        <Text color={pal.accent}>/track-changes examples</Text>
       </Text>
       <Text wrap="truncate-end">
         <Text color={pal.subtle}>One file:  </Text>
-        <Text color={pal.accent}>/redline budget.xlsx</Text>
+        <Text color={pal.accent}>/track-changes budget.xlsx</Text>
       </Text>
     </>
   )
